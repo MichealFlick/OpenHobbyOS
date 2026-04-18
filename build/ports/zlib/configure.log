@@ -1,0 +1,197 @@
+--------------------
+/home/david/coopsdevfield/OpenHobbyOS/user/lib/zlib/configure --static --prefix=/ --libdir=/lib --includedir=/include
+Fri Apr 17 21:32:17 EET 2026
+Using i686-openhobbyos-ar
+Using i686-openhobbyos-ranlib
+Using i686-openhobbyos-nm
+=== ztest37100.c ===
+extern int getchar();
+int hello() {return getchar();}
+===
+i686-openhobbyos-gcc -c ztest37100.c
+... using gcc
+
+Checking for compiler...
+=== ztest37100.c ===
+int foo() { return 0; }
+===
+i686-openhobbyos-gcc -c ztest37100.c
+Checking for obsessive-compulsive compiler options...
+=== ztest37100.c ===
+int foo() { return 0; }
+===
+i686-openhobbyos-gcc -c --sysroot=/home/david/coopsdevfield/OpenHobbyOS/build/ports/sysroot -O2 -ffreestanding -fno-pic -fno-pie -fPIC ztest37100.c
+
+Building static library libz.a version 1.3.2.1-motley with i686-openhobbyos-gcc.
+
+=== ztest37100.c ===
+#include <stdio.h>
+#include <stdlib.h>
+size_t dummy = 0;
+===
+i686-openhobbyos-gcc -c --sysroot=/home/david/coopsdevfield/OpenHobbyOS/build/ports/sysroot -O2 -ffreestanding -fno-pic -fno-pie -fPIC ztest37100.c
+Checking for size_t... Yes.
+
+=== ztest37100.c ===
+#include <sys/types.h>
+off64_t dummy = 0;
+===
+i686-openhobbyos-gcc -c --sysroot=/home/david/coopsdevfield/OpenHobbyOS/build/ports/sysroot -O2 -ffreestanding -fno-pic -fno-pie -fPIC -D_LARGEFILE64_SOURCE=1 ztest37100.c
+ztest37100.c:2:1: error: unknown type name ‘off64_t’; did you mean ‘_off64_t’?
+    2 | off64_t dummy = 0;
+      | ^~~~~~~
+      | _off64_t
+(exit code 1)
+Checking for off64_t... No.
+
+=== ztest37100.c ===
+#include <stdio.h>
+int main(void) {
+  fseeko(NULL, 0, 0);
+  return 0;
+}
+===
+i686-openhobbyos-gcc --sysroot=/home/david/coopsdevfield/OpenHobbyOS/build/ports/sysroot -O2 -ffreestanding -fno-pic -fno-pie -fPIC --sysroot=/home/david/coopsdevfield/OpenHobbyOS/build/ports/sysroot -static -nostartfiles -lopenhobbyosgloss -o ztest37100 ztest37100.c
+/usr/bin/ld: warning: libc_a-memset.o: missing .note.GNU-stack section implies executable stack
+/usr/bin/ld: NOTE: This behaviour is deprecated and will be removed in a future version of the linker
+Checking for fseeko... Yes.
+
+=== ztest37100.c ===
+#include <string.h>
+#include <errno.h>
+int main() { return strlen(strerror(errno)); }
+===
+i686-openhobbyos-gcc --sysroot=/home/david/coopsdevfield/OpenHobbyOS/build/ports/sysroot -O2 -ffreestanding -fno-pic -fno-pie -fPIC --sysroot=/home/david/coopsdevfield/OpenHobbyOS/build/ports/sysroot -static -nostartfiles -lopenhobbyosgloss -o ztest37100 ztest37100.c
+/usr/bin/ld: warning: libc_a-memset.o: missing .note.GNU-stack section implies executable stack
+/usr/bin/ld: NOTE: This behaviour is deprecated and will be removed in a future version of the linker
+Checking for strerror... Yes.
+
+=== ztest37100.c ===
+#include <unistd.h>
+int main() { return 0; }
+===
+i686-openhobbyos-gcc -c --sysroot=/home/david/coopsdevfield/OpenHobbyOS/build/ports/sysroot -O2 -ffreestanding -fno-pic -fno-pie -fPIC ztest37100.c
+Checking for unistd.h... Yes.
+
+=== ztest37100.c ===
+#include <stdarg.h>
+int main() { return 0; }
+===
+i686-openhobbyos-gcc -c --sysroot=/home/david/coopsdevfield/OpenHobbyOS/build/ports/sysroot -O2 -ffreestanding -fno-pic -fno-pie -fPIC ztest37100.c
+Checking for stdarg.h... Yes.
+
+=== ztest37100.c ===
+#include <stdio.h>
+#include <stdarg.h>
+#include "zconf.h"
+int main()
+{
+#ifndef STDC
+  choke me
+#endif
+  return 0;
+}
+===
+i686-openhobbyos-gcc -c --sysroot=/home/david/coopsdevfield/OpenHobbyOS/build/ports/sysroot -O2 -ffreestanding -fno-pic -fno-pie -fPIC ztest37100.c
+Checking whether to use vs[n]printf() or s[n]printf()... using vs[n]printf().
+
+=== ztest37100.c ===
+#include <stdio.h>
+#include <stdarg.h>
+int mytest(const char *fmt, ...)
+{
+  char buf[20];
+  va_list ap;
+  va_start(ap, fmt);
+  vsnprintf(buf, sizeof(buf), fmt, ap);
+  va_end(ap);
+  return 0;
+}
+int main()
+{
+  return (mytest("Hello%d\n", 1));
+}
+===
+i686-openhobbyos-gcc --sysroot=/home/david/coopsdevfield/OpenHobbyOS/build/ports/sysroot -O2 -ffreestanding -fno-pic -fno-pie -fPIC --sysroot=/home/david/coopsdevfield/OpenHobbyOS/build/ports/sysroot -static -nostartfiles -lopenhobbyosgloss -o ztest37100 ztest37100.c
+/usr/bin/ld: warning: libc_a-memcpy.o: missing .note.GNU-stack section implies executable stack
+/usr/bin/ld: NOTE: This behaviour is deprecated and will be removed in a future version of the linker
+Checking for vsnprintf() in stdio.h... Yes.
+
+=== ztest37100.c ===
+#include <stdio.h>
+#include <stdarg.h>
+int mytest(const char *fmt, ...)
+{
+  int n;
+  char buf[20];
+  va_list ap;
+  va_start(ap, fmt);
+  n = vsnprintf(buf, sizeof(buf), fmt, ap);
+  va_end(ap);
+  return n;
+}
+int main()
+{
+  return (mytest("Hello%d\n", 1));
+}
+===
+i686-openhobbyos-gcc -c --sysroot=/home/david/coopsdevfield/OpenHobbyOS/build/ports/sysroot -O2 -ffreestanding -fno-pic -fno-pie -fPIC ztest37100.c
+Checking for return value of vsnprintf()... Yes.
+
+=== ztest37100.c ===
+#define ZLIB_INTERNAL __attribute__((visibility ("hidden")))
+int ZLIB_INTERNAL foo;
+int main()
+{
+  return 0;
+}
+===
+i686-openhobbyos-gcc -c --sysroot=/home/david/coopsdevfield/OpenHobbyOS/build/ports/sysroot -O2 -ffreestanding -fno-pic -fno-pie -fPIC ztest37100.c
+Checking for attribute(visibility) support... Yes.
+=== ztest37100.c ===
+#ifndef __s390x__
+    #error
+#endif
+===
+i686-openhobbyos-gcc -c --sysroot=/home/david/coopsdevfield/OpenHobbyOS/build/ports/sysroot -O2 -ffreestanding -fno-pic -fno-pie -fPIC -DHAVE_HIDDEN ztest37100.c
+ztest37100.c:2:6: error: #error 
+    2 |     #error
+      |      ^~~~~
+(exit code 1)
+Checking for s390x build ... No.
+
+ALL = static
+AR = i686-openhobbyos-ar
+ARFLAGS = rc
+CC = i686-openhobbyos-gcc
+CFLAGS = --sysroot=/home/david/coopsdevfield/OpenHobbyOS/build/ports/sysroot -O2 -ffreestanding -fno-pic -fno-pie -fPIC -DHAVE_HIDDEN
+CPP =
+EXE =
+LDCONFIG = ldconfig
+LDFLAGS = --sysroot=/home/david/coopsdevfield/OpenHobbyOS/build/ports/sysroot -static -nostartfiles -lopenhobbyosgloss
+LDSHARED = i686-openhobbyos-gcc
+LDSHAREDLIBC = -lc
+OBJC = $(OBJZ) $(OBJG)
+PIC_OBJC = $(PIC_OBJZ) $(PIC_OBJG)
+RANLIB = i686-openhobbyos-ranlib
+SFLAGS = --sysroot=/home/david/coopsdevfield/OpenHobbyOS/build/ports/sysroot -O2 -ffreestanding -fno-pic -fno-pie -fPIC -DHAVE_HIDDEN
+SHAREDLIB =
+SHAREDLIBM =
+SHAREDLIBV =
+STATICLIB = libz.a
+TEST = all teststatic
+VER = 1.3.2.1-motley
+SRCDIR = /home/david/coopsdevfield/OpenHobbyOS/user/lib/zlib/
+exec_prefix = ${prefix}
+includedir = /include
+libdir = /lib
+mandir = ${prefix}/share/man
+prefix = /
+sharedlibdir = ${libdir}
+uname = i686-openhobbyos
+HAVE_S390X = 0
+HAVE_S390X_VX = 0
+VGFMAFLAG =
+--------------------
+
+

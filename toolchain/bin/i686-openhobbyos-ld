@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+set -euo pipefail
+exec ld -m elf_i386 "$@"

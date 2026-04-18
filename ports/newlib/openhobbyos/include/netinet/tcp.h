@@ -1,0 +1,7 @@
+#ifndef OPENHOBBYOS_NETINET_TCP_H
+#define OPENHOBBYOS_NETINET_TCP_H
+
+#define TCP_NODELAY 1
+#define TCP_FASTOPEN 23
+
+#endif

@@ -1,0 +1,13 @@
+prefix=/
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+
+Name: Xfont2
+Description: OpenHobbyOS bitmap-focused libXfont2 build from upstream sources
+Version: 2.0.7
+Requires: xproto fontsproto
+Requires.private: fontenc zlib
+Cflags: -I${includedir}
+Libs: -L${libdir} -lXfont2 -lz
+Libs.private: -lz -lm

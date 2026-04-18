@@ -1,0 +1,10 @@
+/home/david/coopsdevfield/OpenHobbyOS/build/ports/fastfetch/CMakeFiles/libfastfetch.dir
+/home/david/coopsdevfield/OpenHobbyOS/build/ports/fastfetch/CMakeFiles/fastfetch.dir
+/home/david/coopsdevfield/OpenHobbyOS/build/ports/fastfetch/CMakeFiles/package.dir
+/home/david/coopsdevfield/OpenHobbyOS/build/ports/fastfetch/CMakeFiles/package_source.dir
+/home/david/coopsdevfield/OpenHobbyOS/build/ports/fastfetch/CMakeFiles/edit_cache.dir
+/home/david/coopsdevfield/OpenHobbyOS/build/ports/fastfetch/CMakeFiles/rebuild_cache.dir
+/home/david/coopsdevfield/OpenHobbyOS/build/ports/fastfetch/CMakeFiles/list_install_components.dir
+/home/david/coopsdevfield/OpenHobbyOS/build/ports/fastfetch/CMakeFiles/install.dir
+/home/david/coopsdevfield/OpenHobbyOS/build/ports/fastfetch/CMakeFiles/install/local.dir
+/home/david/coopsdevfield/OpenHobbyOS/build/ports/fastfetch/CMakeFiles/install/strip.dir

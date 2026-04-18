@@ -1,0 +1,3 @@
+OpenHobbyOS !
+My personal experimental playground of an OS. and something that you might be using now !
+Enjoy!

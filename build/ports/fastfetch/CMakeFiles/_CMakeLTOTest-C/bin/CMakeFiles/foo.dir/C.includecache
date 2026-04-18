@@ -1,0 +1,10 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/david/coopsdevfield/OpenHobbyOS/build/ports/fastfetch/CMakeFiles/_CMakeLTOTest-C/src/foo.c
+

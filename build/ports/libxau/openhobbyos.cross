@@ -1,0 +1,20 @@
+[binaries]
+c = 'i686-openhobbyos-gcc'
+ar = 'i686-openhobbyos-ar'
+strip = 'i686-openhobbyos-strip'
+pkg-config = 'i686-openhobbyos-pkg-config'
+
+[properties]
+sys_root = '/home/david/coopsdevfield/OpenHobbyOS/build/ports/sysroot'
+needs_exe_wrapper = true
+pkg_config_libdir = '/home/david/coopsdevfield/OpenHobbyOS/build/ports/sysroot/lib/pkgconfig:/home/david/coopsdevfield/OpenHobbyOS/build/ports/sysroot/share/pkgconfig:/home/david/coopsdevfield/OpenHobbyOS/build/ports/sysroot/usr/lib/pkgconfig:/home/david/coopsdevfield/OpenHobbyOS/build/ports/sysroot/usr/share/pkgconfig'
+
+[built-in options]
+c_args = ['--sysroot=/home/david/coopsdevfield/OpenHobbyOS/build/ports/sysroot', '-O2', '-ffreestanding', '-fno-pic', '-fno-pie']
+c_link_args = ['--sysroot=/home/david/coopsdevfield/OpenHobbyOS/build/ports/sysroot', '-static', '-nostartfiles', '-lopenhobbyosgloss']
+
+[host_machine]
+system = 'linux'
+cpu_family = 'x86'
+cpu = 'i686'
+endian = 'little'

@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
+ROOT=$(cd "$SCRIPT_DIR/../.." && pwd)
+SYSROOT=${OPENHOBBYOS_SYSROOT:-"$ROOT/build/ports/sysroot"}
+TARGET_SYSROOT="$SYSROOT/i686-elf"
+SPECS="$SYSROOT/lib/openhobbyos.specs"
+
+args=(-m32 -ffreestanding -fno-pic -fno-pie -fomit-frame-pointer)
+
+if [[ -d "$SYSROOT" ]]; then
+    args+=(--sysroot="$SYSROOT")
+fi
+
+if [[ -f "$SPECS" ]]; then
+    args+=(-specs="$SPECS")
+fi
+
+if [[ -d "$TARGET_SYSROOT/include" ]]; then
+    args+=(-isystem "$TARGET_SYSROOT/include")
+fi
+
+if [[ -f "$TARGET_SYSROOT/include/openhobbyos/features.h" ]]; then
+    args+=(-include "$TARGET_SYSROOT/include/openhobbyos/features.h")
+fi
+
+if [[ -d "$TARGET_SYSROOT/lib" ]]; then
+    args+=(-L"$TARGET_SYSROOT/lib" -B"$TARGET_SYSROOT/lib")
+fi
+
+exec gcc "${args[@]}" "$@"
