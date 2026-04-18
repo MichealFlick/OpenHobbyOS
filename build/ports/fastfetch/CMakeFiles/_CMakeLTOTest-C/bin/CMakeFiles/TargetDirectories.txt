@@ -1,4 +1,0 @@
-/home/david/coopsdevfield/OpenHobbyOS/build/ports/fastfetch/CMakeFiles/_CMakeLTOTest-C/bin/CMakeFiles/foo.dir
-/home/david/coopsdevfield/OpenHobbyOS/build/ports/fastfetch/CMakeFiles/_CMakeLTOTest-C/bin/CMakeFiles/boo.dir
-/home/david/coopsdevfield/OpenHobbyOS/build/ports/fastfetch/CMakeFiles/_CMakeLTOTest-C/bin/CMakeFiles/edit_cache.dir
-/home/david/coopsdevfield/OpenHobbyOS/build/ports/fastfetch/CMakeFiles/_CMakeLTOTest-C/bin/CMakeFiles/rebuild_cache.dir

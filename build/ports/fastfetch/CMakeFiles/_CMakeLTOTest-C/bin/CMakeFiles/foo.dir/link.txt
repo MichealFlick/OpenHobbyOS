@@ -1,2 +1,0 @@
-"CMAKE_C_COMPILER_AR-NOTFOUND" cr libfoo.a CMakeFiles/foo.dir/foo.c.o
-"CMAKE_C_COMPILER_RANLIB-NOTFOUND" libfoo.a
