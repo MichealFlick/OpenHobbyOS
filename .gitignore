@@ -1,0 +1,31 @@
+# Ignore build artifacts and local build environments
+/build/
+/build/meson-venv/
+
+# Local scratch and temporary files
+serdep.tmp
+*.tmp
+*.log
+
+# Editor and OS files
+*.swp
+*.swo
+*~
+*.bak
+*.DS_Store
+.vscode/
+.idea/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Archive files often not needed in repo
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.7z
+*.rar
