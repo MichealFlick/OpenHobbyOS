@@ -7,7 +7,7 @@ you can git clone this repo and run in qemu. pretty standard. it requires GCC. x
 
 this project is made to be compiled on linux so if you want to try it on widnows. yeah it will be a pain.
 
-if you are seeing this as of april 2026 this OS is still unstable and hard to reproduce. still not meant to be reproduced by other people yet
+if you are seeing this as of april 2026 this OS is still unstable and very hard to reproduce. still not meant to be reproduced by other people yet for now. this will change soon.
 
 ## Common questions (aka FAQ)
 - **What is the goal of OHOS ?**
