@@ -1,5 +1,5 @@
 ## OpenHobbyOS (OHOS)
-First lets start with whats OpenHobbyOS is. OpenHobbyOS is an compatibility focused operating system written in C. it ports some cool things like X.org server . NewLib . fastfetch. it started in 2024 then i ditched it. now i refocused on it again and after some more work i managed to make it suitable for the public !.
+First lets start with whats OpenHobbyOS is. OpenHobbyOS is a 32-bit x86 compatibility focused operating system written in C . it ports some cool things like X.org server . NewLib . fastfetch. it started in 2024 then i ditched it. now i refocused on it again and after some more work i managed to make it suitable for the public !.
 
 this is a learning project !. code quality itslef might not be the best and its probably full of glue code, so dont have high stakes for it !. if you found any bugs or issues you can open a pr to fix it or submit an issue !.
 
