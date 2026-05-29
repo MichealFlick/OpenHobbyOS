@@ -274,6 +274,9 @@ ports-lwip: ports/lwip/build-lwip.sh $(PORTS_SYSROOT)/.newlib.stamp
 ports-doom: ports/doom/build-doom.sh $(PORTS_SYSROOT)/.newlib.stamp
 	ports/doom/build-doom.sh $(PORTS_DIR)/doom $(PORTS_SYSROOT)
 
+ports-ffmpeg: ports/ffmpeg/build-ffmpeg.sh $(PORTS_SYSROOT)/.newlib.stamp
+	ports/ffmpeg/build-ffmpeg.sh $(PORTS_DIR)/ffmpeg $(PORTS_SYSROOT)
+
 ports: $(FASTFETCH_BIN) $(XNX_COMPOSITOR)
 
 run: run-gui
