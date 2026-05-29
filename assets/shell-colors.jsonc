@@ -1,0 +1,14 @@
+{
+    // Shell color scheme — ANSI SGR codes (30-37 dim, 90-97 bright, 1 = bold)
+    "colors": {
+        "prompt_user":   "96",
+        "prompt_host":   "92",
+        "prompt_path":   "94",
+        "prompt_symbol": "97",
+        "error":         "91",
+        "success":       "92",
+        "default":       "97",
+        "warning":       "93",
+        "title":         "96"
+    }
+}
