@@ -9,6 +9,11 @@
 
 #define KEYBOARD_DATA_PORT 0x60
 #define KEYBOARD_BUFFER_SIZE 256
+#define KEYBOARD_RAW_BUFFER_SIZE 512
+
+static volatile u8 raw_buffer[KEYBOARD_RAW_BUFFER_SIZE];
+static volatile u32 raw_head;
+static volatile u32 raw_tail;
 
 static const char keymap[128] = {
     [0x02] = '1', [0x03] = '2', [0x04] = '3', [0x05] = '4',
@@ -51,6 +56,7 @@ static volatile u32 input_head;
 static volatile u32 input_tail;
 static bool shift_down;
 static bool caps_lock;
+static bool ctrl_down;
 
 static void queue_char(char ch) {
     u32 next = (input_head + 1u) % KEYBOARD_BUFFER_SIZE;
@@ -70,18 +76,33 @@ static char translate_scancode(u8 scancode) {
     ch = shift_down ? shifted_keymap[scancode] : keymap[scancode];
     if (isalpha(ch)) {
         bool uppercase = caps_lock ^ shift_down;
-        return uppercase ? toupper(ch) : tolower(ch);
+        ch = uppercase ? toupper(ch) : tolower(ch);
+        if (ctrl_down) {
+            return (char)(tolower(ch) - 'a' + 1);
+        }
+        return ch;
     }
     return ch;
 }
 
 static void keyboard_irq(UNUSED registers_t *regs) {
-    u8 scancode = inb(KEYBOARD_DATA_PORT);
-    bool released = (scancode & 0x80u) != 0;
-    scancode &= 0x7Fu;
+    u8 raw_scancode = inb(KEYBOARD_DATA_PORT);
+    u32 raw_next = (raw_head + 1u) % KEYBOARD_RAW_BUFFER_SIZE;
+    if (raw_next != raw_tail) {
+        raw_buffer[raw_head] = raw_scancode;
+        raw_head = raw_next;
+    }
+
+    u8 scancode = raw_scancode & 0x7Fu;
+    bool released = (raw_scancode & 0x80u) != 0;
 
     if (scancode == 0x2A || scancode == 0x36) {
         shift_down = !released;
+        return;
+    }
+
+    if (scancode == 0x1D) {
+        ctrl_down = !released;
         return;
     }
 
@@ -102,11 +123,27 @@ static void keyboard_irq(UNUSED registers_t *regs) {
     }
 }
 
+bool keyboard_has_raw_scancode(void) {
+    return raw_head != raw_tail;
+}
+
+u8 keyboard_read_raw_scancode(void) {
+    while (raw_head == raw_tail) {
+        cpu_halt();
+    }
+    u8 sc = raw_buffer[raw_tail];
+    raw_tail = (raw_tail + 1u) % KEYBOARD_RAW_BUFFER_SIZE;
+    return sc;
+}
+
 void keyboard_init(void) {
     input_head = 0;
     input_tail = 0;
+    raw_head = 0;
+    raw_tail = 0;
     shift_down = false;
     caps_lock = false;
+    ctrl_down = false;
     irq_install_handler(1, keyboard_irq);
     pic_clear_mask(1);
 }
@@ -158,6 +195,12 @@ size_t keyboard_readline(char *buffer, size_t size) {
 
         if (ch == '\n') {
             console_putc('\n');
+            break;
+        }
+
+        if (ch == 3) {
+            console_write("^C\n");
+            used = 0;
             break;
         }
 

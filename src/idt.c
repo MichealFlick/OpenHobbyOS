@@ -2,6 +2,7 @@
 
 #include "console.h"
 #include "gdt.h"
+#include "paging.h"
 #include "panic.h"
 #include "pic.h"
 #include "string.h"
@@ -24,6 +25,10 @@ typedef struct PACKED {
 static idt_entry_t idt_entries[256];
 static idt_ptr_t idt_ptr;
 static irq_handler_t irq_handlers[16];
+static registers_t last_user_regs;
+static registers_t last_user_syscall_regs;
+static bool last_user_regs_valid;
+static bool last_user_syscall_regs_valid;
 
 extern void isr0(void);
 extern void isr1(void);
@@ -125,6 +130,10 @@ static void idt_load(const idt_ptr_t *ptr) {
 void idt_init(void) {
     memset(idt_entries, 0, sizeof(idt_entries));
     memset(irq_handlers, 0, sizeof(irq_handlers));
+    memset(&last_user_regs, 0, sizeof(last_user_regs));
+    memset(&last_user_syscall_regs, 0, sizeof(last_user_syscall_regs));
+    last_user_regs_valid = false;
+    last_user_syscall_regs_valid = false;
 
     idt_ptr.limit = sizeof(idt_entries) - 1;
     idt_ptr.base = (u32)(uintptr_t)&idt_entries;
@@ -196,7 +205,48 @@ void irq_remove_handler(u8 irq) {
     }
 }
 
+bool idt_last_user_frame(registers_t *out) {
+    if (!out || !last_user_regs_valid) {
+        return false;
+    }
+
+    *out = last_user_regs;
+    return true;
+}
+
+bool idt_last_user_syscall_frame(registers_t *out) {
+    if (!out || !last_user_syscall_regs_valid) {
+        return false;
+    }
+
+    *out = last_user_syscall_regs;
+    return true;
+}
+
 void isr_dispatch(registers_t *regs) {
+    if ((regs->cs & 3u) == 3u) {
+        last_user_regs = *regs;
+        last_user_regs_valid = true;
+        if (regs->int_no == 128) {
+            last_user_syscall_regs = *regs;
+            last_user_syscall_regs_valid = true;
+        }
+    }
+
+    /* Handle page fault specially */
+    if (regs->int_no == 14) {
+        u32 fault_addr;
+        __asm__ volatile ("mov %%cr2, %0" : "=r"(fault_addr));
+        page_fault_handler(fault_addr, regs->err_code, regs);
+        return;
+    }
+
+    /* Handle #NM (Device Not Available) for lazy FPU context switching */
+    if (regs->int_no == 7) {
+        fpu_nm_handler(regs);
+        return;
+    }
+
     if (regs->int_no < 32) {
         if ((regs->cs & 3u) == 3u && task_is_active()) {
             task_abort_from_trap(regs, exception_names[regs->int_no]);

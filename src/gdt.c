@@ -46,7 +46,7 @@ typedef struct PACKED {
     u16 iomap_base;
 } tss_entry_t;
 
-static gdt_entry_t gdt_entries[6];
+static gdt_entry_t gdt_entries[8];
 static gdt_ptr_t gdt_ptr;
 static tss_entry_t tss;
 
@@ -115,6 +115,8 @@ void gdt_init(uintptr_t kernel_stack_top) {
     gdt_set_gate(2, 0, 0xFFFFF, 0x92, 0xCF);
     gdt_set_gate(3, 0, 0xFFFFF, 0xFA, 0xCF);
     gdt_set_gate(4, 0, 0xFFFFF, 0xF2, 0xCF);
+    /* Entry 6: per-task TLS/GS segment (selector 0x33). Base updated at task switch */
+    gdt_set_gate(6, 0, 0xFFF, 0xF2, 0x40);
     tss_write(kernel_stack_top);
 
     gdt_load(&gdt_ptr);
@@ -123,4 +125,8 @@ void gdt_init(uintptr_t kernel_stack_top) {
 
 void gdt_set_kernel_stack(uintptr_t kernel_stack_top) {
     tss.esp0 = (u32)kernel_stack_top;
+}
+
+void gdt_set_gs_base(u32 base) {
+    gdt_set_gate(6, base, 0xFFF, 0xF2, 0x40);
 }

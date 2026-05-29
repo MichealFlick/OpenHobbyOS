@@ -3,6 +3,7 @@
 #include "idt.h"
 #include "io.h"
 #include "pic.h"
+#include "task.h"
 
 #define PIT_CHANNEL0 0x40
 #define PIT_COMMAND  0x43
@@ -13,6 +14,7 @@ static u32 configured_frequency = 100;
 
 static void pit_irq(UNUSED registers_t *regs) {
     ticks_since_boot++;
+    task_timer_tick(regs);
 }
 
 void pit_init(u32 frequency_hz) {
