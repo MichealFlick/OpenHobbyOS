@@ -1,141 +1,177 @@
 # OpenHobbyOS (OHOS)
 
-> A minimalistic 32-bit x86 monolithic kernel with a custom userspace ecosystem, designed for educational exploration and lightweight deployment.
+```
+  ╔═══════════════════════════════════════════╗
+  ║         OpenHobbyOS — OHOS                ║
+  ║       from-scratch 32-bit x86 kernel      ║
+  ╚═══════════════════════════════════════════╝
+```
+
+This is my hobby OS. I started writing it one day and I couldn't stop. 32-bit x86 monolithic kernel, written in C with the hot paths in NASM, booting on real hardware, running Doom.
+
+![screenshot2](screenshots/OH2.png)
+![screenshot1](screenshots/OH1.png)
+
+I don't know why I built half of this. I just kept thinking "that'd be cool" and then I'd wake up mod night then start writing an ext2 driver like my life depends on it
 
 ---
 
-## Overview
+## What the fuck is this
 
-OpenHobbyOS (OHOS) is a from-scratch, monolithic operating system targeting the i386 architecture. Written in C with critical paths in NASM assembly, it emphasizes a small kernel footprint while maintaining compatibility with ported POSIX-like userspace software.
+It's a from-scratch 32-bit operating system. Preemptive multitasking, syscalls, VFS with initrd + ext2 + devfs, a framebuffer console with proper VT100 emulation, networking via lwIP, ACPI power management, and a custom compositor called XNX.
 
-**Key features:**
-- Preemptive multitasking with round-robin scheduler
-- Linux ABI-compatible syscall dispatch (80+ syscalls via `int 0x80`)
-- Per-process page directories with copy-on-write fork (infrastructure wired)
-- Modular VFS with initrd (custom cpio-like), EXT2 (read/write), and devfs
-- libtsm-based framebuffer console with VT100 emulation
-- XNX display protocol — Unix domain socket + pixman compositing
-- lwIP TCP/IP stack port with RTL8139 NIC driver
-- ACPI power management via uACPI
-- Cross-compiled newlib C library (`i686-openhobbyos-elf` toolchain)
-- Ports: fastfetch, Doom, XNX compositor/demo
+It does not have:
+- A network stack I wrote myself (I'm not insane, I ported lwIP)
+- USB (I value my remaining sanity)
+- Any good reason to exist
+
+---
+
+## Features
+
+- **Preemptive multitasking** with a round-robin scheduler. It works. I have no idea how so dont ask me anywhere.
+- **80+ syscall numbers** via `int 0x80`, Linux ABI-compatible. If you know Linux syscalls, you already know how to write userspace for this thing.
+- **Per-process page directories** with copy-on-write fork. The paging infrastructure is fully wired. I just haven't enabled it on the CPU yet. It's a debug thing. I'll flip the bit eventually.
+- **VFS stack**: initrd (custom cpio-like), ext2 (read + write), devfs. I corrupted a disk image once. It was educational.
+- **libtsm framebuffer console** with full VT100 emulation. ANSI colors, scrollback, the whole package. It goes to both the framebuffer and serial so you can watch from two angles.
+- **XNX display protocol** — Unix domain socket + pixman compositing. Clients create surfaces, the compositor composites them, pixels hit the hardware framebuffer every 33ms. Yes there's a fullscreen gradient demo. It's art.
+- **lwIP TCP/IP** talking to real hardware through an RTL8139 NIC driver. I can ping things. Sometimes they ping back.
+- **ACPI power management** via uACPI. Shutdown, reboot, suspend. I control the power grid now.
+- **newlib C library** cross-compiled for `i686-openhobbyos-elf`. Your userspace speaks C.
+- **Ported software**: fastfetch, Doom, XNX compositor + demo, lwIP, libtsm, uACPI, pixman, zlib.
 
 ---
 
 ## Requirements
 
-- **CPU:** i386 / IA-32 compatible (Pentium or later)
-- **RAM:** 200–500 MB
-- **Disk:** CD-ROM or IDE disk image
+| Thing | Need |
+|-------|------|
+| **CPU** | i386 / IA-32. Pentium or later. Yes it'll boot on that ThinkPad in your closet. |
+| **RAM** | 200–500 MB |
+| **Disk** | CD-ROM or IDE disk image |
 
 ---
 
-## Build Dependencies
+## Build dependencies
 
 ```
 gcc-multilib (or i686-elf-gcc)
 nasm >= 2.15
 make, python3 >= 3.8, xorriso, grub-mkrescue, mtools
-
-Optional (ports):
-meson, ninja, pkg-config, autoconf, automake, cmake
 ```
+
+Optional for ports: `meson, ninja, pkg-config, autoconf, automake, cmake`
 
 ---
 
-## Quick Start
+## Quick start
 
 ```bash
-# Build kernel, userspace, and ISO
+# Build the whole thing
 make all
 
-# Run in QEMU (GUI)
+# Run in QEMU
 make run
 
 # Run with serial debug output
 make run-debug
 
-# Clean build artifacts
+# Clean
 make clean
 ```
 
-The build produces `build/OpenHobbyOS.iso` — a bootable GRUB2 rescue ISO containing the kernel and initial ramdisk.
+you will dins the iso in the build folder.
 
 ---
 
-## Project Structure
+## Memory layout
 
-| Directory | Purpose |
-|-----------|---------|
-| `src/` | Kernel source (32 C files + 3 NASM files) |
-| `include/` | Kernel and shared headers (28 files) |
-| `user/` | Userspace programs and libraries |
-| `ports/` | Third-party software build scripts |
-| `tools/` | Build and disk image tooling |
-| `assets/` | Root filesystem assets (configs, Doom WAD) |
-| `grub/` | GRUB2 boot configuration |
-| `toolchain/` | Cross-compiler wrappers |
+```
+0x00000000 - 0x0009FFFF: Low memory (reserved, stay out)
+0x000A0000 - 0x000FFFFF: VGA/ROM (also reserved)
+0x00100000 - kernel_end:   Kernel code + data (identity mapped, I live here)
+kernel_end - 0x02FF0000:   Kernel heap (kmalloc territory)
+0x03000000+:               User ELF loading (48MB+ available)
+```
+
+Paging is **fully initialized** but **not enabled on the CPU**. Why? Debugging. Turn it on and it works fine . I just haven't bothered to flip the bit on every boot cus im lazy.
 
 ---
 
-## Architecture
+## Syscall interface
 
-### Boot Process
+Linux ABI-compatible via `int 0x80`. I stole the numbers so you don't have to learn another ABI:
 
-```
-GRUB (ISO) → boot.asm → kernel_main()
-```
+- File I/O: open, read, write, close, lseek, ioctl, mmap, brk
+- Process: fork, execve, wait, exit, getpid
+- IPC: pipe, Unix sockets
+- Time: clock_gettime, nanosleep
+- OHOS-specific: spawn, yield at 400+
 
-1. GRUB loads kernel.bin at 1MB (via linker.ld)
-2. `boot.asm` sets up stack, zeroes BSS, calls `kernel_main()`
-3. `kernel_main()` initializes: console → GDT → PIC → IDT → PIT → keyboard → memory → paging → initrd → VFS → task scheduler → power → userspace init
+---
 
-### Memory Layout
-
-```
-0x00000000 - 0x0009FFFF: Low memory (reserved)
-0x000A0000 - 0x000FFFFF: VGA/ROM (reserved)
-0x00100000 - kernel_end:   Kernel code/data (identity mapped)
-kernel_end - 0x02FF0000:   Kernel heap
-0x03000000+:               User ELF loading (48MB+)
-```
-
-Paging subsystem is fully initialized but **paging is not enabled on the CPU** . why ? for debugging purposes mainly. you can enable it and it wil work fine.
-### Syscall Interface
-
-Linux ABI-compatible syscall numbers via `int 0x80`. Key groups: file I/O, process (fork/execve/wait), memory (brk/mmap), IPC (pipe, Unix sockets), time, and OHOS-specific (spawn, yield at 400+).
-
-### Filesystem Stack
+## Filesystem stack
 
 ```
 VFS → initrd (read-only, boot) | ext2 (read/write, disk) | devfs (/dev/*)
-Block layer: VFS → blkdev → ATA driver → Disk
+Block layer: VFS → blkdev → ATA → Disk
 ```
 
-### Graphics
+**initrd** is a custom cpio-like archive embedded in the kernel. Holds every binary the system needs to boot to a shell.
 
-- Early: VGA text mode (80x25)
-- Framebuffer: libtsm terminal emulation with VT100 support
-- XNX: Unix domain socket display protocol, pixman compositing
+**ext2** does full read and write. I handle inodes, block groups, directory entries. I've also produced some beautifully corrupted disk images. It's a rite of passage — you haven't lived until you've debugged an ext2 write at 3am with a hex editor.
+
+**devfs** gives you `/dev/fb0`, `/dev/null`, `/dev/zero`, and a console device. The classics.
 
 ---
 
-## Ports
+## Graphics
 
-| Port | Description |
-|------|-------------|
-| newlib | C standard library (cross-compiled) |
-| zlib | Compression library |
-| pixman | Software pixel compositing |
-| fastfetch | System info display |
-| lwIP | TCP/IP stack |
-| libtsm | Terminal emulator (kernel-linked) |
-| uACPI | ACPI implementation (kernel-linked) |
-| Doom | Game port via doomgeneric |
-| XNX | Display protocol (compositor, client lib, demo) |
+```
+Early boot:      VGA text mode (80x25, retro chic)
+Framebuffer:     libtsm with VT100 emulation
+XNX compositor:  Custom display protocol over Unix domain sockets
+```
+
+**libtsm** is a terminal emulator linked directly into the kernel. VT100 escape sequences, ANSI colors, scrollback buffer, the works. Output hits both the framebuffer and serial simultaneously.
+
+**XNX** is the display protocol I wrote. Clients connect to `/tmp/xnx.sock`, create surfaces, push pixel buffers. The compositor composites everything with pixman and flushes to the hardware framebuffer. It's basically a baby Wayland but worse and I'm proud of it.
+
+---
+
+## Network
+
+```
+lwIP → netdev → RTL8139 PCI NIC → the internet (probably)
+```
+
+lwIP ported as a userspace library. RTL8139 driver does PCI enumeration + MMIO. The whole pipeline works. I can ping things. It feels like magic because it basically is.
+
+---
+
+## Credits
+
+Thanks to the other depressed veterans who suffered through this so lazy people like me can use it . credits where its due:
+
+uACPI : the power management
+
+lwip : the tls and networking duh
+
+lodepng : loading png files 
+
+zlib : file compression .
+
+pixman : drawing pixels and rendering
+
+doomgeneric : for making doom even run
+
+libtsm : for being an actually correct state machine for VT100.
+
+fastfetch : for making things look more ric-ey
+
 
 ---
 
 ## License
 
-BSD 3-Clause. See `LICENSE`.
+BSD 3-Clause. Go wild. See `LICENSE`. Don't sue me if it fucks up your PC. It probably won't. Probably.

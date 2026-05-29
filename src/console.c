@@ -192,17 +192,31 @@ static int console_draw_cb(struct tsm_screen *con, uint64_t id,
     if (attr->bold && fg_idx < 8)
         fg_col = console_ansi_colours[fg_idx + 8];
 
+    unsigned int glyph = 0;
+    int full_block = 0;
+    if (len > 0 && ch[0] < CONSOLE_FONT_GLYPHS) {
+        glyph = ch[0];
+    } else if (len > 0) {
+        full_block = 1;
+    }
+
+    if (full_block && fg_idx < 8)
+        fg_col = console_ansi_colours[fg_idx + 8];
+
     u32 fg_packed = console_pack_colour(
         (fg_col >> 16) & 0xFF, (fg_col >> 8) & 0xFF, fg_col & 0xFF);
     u32 bg_packed = console_pack_colour(
         (bg_col >> 16) & 0xFF, (bg_col >> 8) & 0xFF, bg_col & 0xFF);
 
-    unsigned int glyph = 0;
-    if (len > 0 && ch[0] < CONSOLE_FONT_GLYPHS)
-        glyph = ch[0];
+    unsigned int top_margin = (font_h - font_w) / 2u;
 
     for (unsigned int row = 0; row < font_h; ++row) {
-        unsigned char font_byte = console_font[glyph * font_h + row];
+        unsigned char font_byte;
+        if (full_block) {
+            font_byte = (row >= top_margin && row < top_margin + font_w) ? 0xFFu : 0x00u;
+        } else {
+            font_byte = console_font[glyph * font_h + row];
+        }
         for (unsigned int col = 0; col < font_w; ++col) {
             int px = (int)(posx * font_w + col);
             int py = (int)(posy * font_h + row);

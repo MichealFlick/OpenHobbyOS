@@ -199,7 +199,7 @@ static void remove_client(int idx) {
     clients[idx] = clients[--num_clients];
 
     if (num_surfaces == 0) {
-        memset(fb_pixels, 0, fb_size);
+    memcpy(fb_pixels, fb_hw_pixels, fb_size);
     }
 }
 
@@ -365,7 +365,7 @@ static void composite_surfaces(void) {
         return;
     }
 
-    memset(fb_pixels, 0, fb_size);
+    memcpy(fb_pixels, fb_hw_pixels, fb_size);
 
     for (;;) {
         struct xnx_surface *next = NULL;
