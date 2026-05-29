@@ -1,6 +1,8 @@
 #include "elf.h"
 
+#include "memory.h"
 #include "string.h"
+#include "vfs.h"
 
 typedef struct PACKED {
     u8 ident[16];
@@ -36,7 +38,11 @@ static u32 align_up(u32 value, u32 alignment) {
 
 bool elf_load_image(const initrd_file_t *file, u32 user_base, u32 user_limit, elf_image_t *image) {
     const elf_header_t *header;
-    u32 image_end = user_base;
+    u32 load_min = 0xFFFFFFFF;
+    u32 load_max = 0;
+
+    (void)user_base;
+    (void)user_limit;
 
     if (!file || file->size < sizeof(elf_header_t) || !image) {
         return false;
@@ -66,7 +72,12 @@ bool elf_load_image(const initrd_file_t *file, u32 user_base, u32 user_limit, el
         if (ph->offset + ph->filesz > file->size) {
             return false;
         }
-        if (ph->vaddr < user_base || ph->vaddr + ph->memsz > user_limit || ph->vaddr + ph->memsz < ph->vaddr) {
+        if (ph->vaddr + ph->memsz < ph->vaddr) {
+            return false;
+        }
+
+        /* Load at ELF-specified address (must be above 1MB to avoid kernel) */
+        if (ph->vaddr < 0x100000) {
             return false;
         }
 
@@ -74,16 +85,75 @@ bool elf_load_image(const initrd_file_t *file, u32 user_base, u32 user_limit, el
         memset((void *)(uintptr_t)ph->vaddr, 0, ph->memsz);
         memcpy((void *)(uintptr_t)ph->vaddr, file->data + ph->offset, ph->filesz);
 
-        if (ph->vaddr + ph->memsz > image_end) {
-            image_end = ph->vaddr + ph->memsz;
+        if (ph->vaddr < load_min) {
+            load_min = ph->vaddr;
+        }
+        if (ph->vaddr + ph->memsz > load_max) {
+            load_max = ph->vaddr + ph->memsz;
         }
     }
 
-    if (header->entry < user_base || header->entry >= user_limit) {
+    if (header->entry < load_min || header->entry >= load_max) {
         return false;
     }
 
     image->entry = header->entry;
-    image->image_end = align_up(image_end, 4096);
+    image->image_end = align_up(load_max, 4096);
+    image->tls_memsz = 0;
+    image->tls_filesz = 0;
+    image->tls_vaddr = 0;
     return true;
+}
+
+bool elf_load_vfs_node(const vfs_node_t *node, u32 user_base, u32 user_limit, elf_image_t *image) {
+    const initrd_file_t *backing;
+
+    if (!node || !image) {
+        return false;
+    }
+
+    backing = vfs_backing_file(node);
+    if (backing) {
+        return elf_load_image(backing, user_base, user_limit, image);
+    }
+
+    if (vfs_is_dir(node)) {
+        return false;
+    }
+
+    {
+        u32 sz = vfs_file_size(node);
+        u8 *buf;
+        ssize_t n;
+
+        if (sz == 0 || sz > user_limit - user_base) {
+            return false;
+        }
+
+        buf = kmalloc(sz);
+        if (!buf) {
+            return false;
+        }
+
+        n = vfs_read(node, 0, buf, sz);
+        if (n != (ssize_t)sz) {
+            kfree(buf);
+            return false;
+        }
+
+        {
+            initrd_file_t tmp;
+            memset(&tmp, 0, sizeof(tmp));
+            tmp.data = buf;
+            tmp.size = sz;
+
+            if (!elf_load_image(&tmp, user_base, user_limit, image)) {
+                kfree(buf);
+                return false;
+            }
+        }
+
+        kfree(buf);
+        return true;
+    }
 }

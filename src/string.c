@@ -118,6 +118,43 @@ char *strrchr(const char *value, int needle) {
     return (char *)last;
 }
 
+char *strtok(char *str, const char *delim) {
+    static char *saved = NULL;
+    char *token;
+
+    if (str != NULL) {
+        saved = str;
+    }
+
+    if (saved == NULL) {
+        return NULL;
+    }
+
+    while (*saved && strchr(delim, *saved)) {
+        saved++;
+    }
+
+    if (*saved == '\0') {
+        saved = NULL;
+        return NULL;
+    }
+
+    token = saved;
+
+    while (*saved && !strchr(delim, *saved)) {
+        saved++;
+    }
+
+    if (*saved) {
+        *saved = '\0';
+        saved++;
+    } else {
+        saved = NULL;
+    }
+
+    return token;
+}
+
 bool isspace(int ch) {
     return ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r' || ch == '\f' || ch == '\v';
 }
