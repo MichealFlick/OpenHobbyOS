@@ -1,6 +1,10 @@
 #ifndef OHOS_TYPES_H
 #define OHOS_TYPES_H
 
+#include <stddef.h>
+#include <stdint.h>
+#include <stdbool.h>
+
 typedef unsigned char u8;
 typedef signed char i8;
 typedef unsigned short u16;
@@ -9,14 +13,14 @@ typedef unsigned int u32;
 typedef signed int i32;
 typedef unsigned long long u64;
 typedef signed long long i64;
-typedef unsigned int size_t;
 typedef signed int ssize_t;
-typedef unsigned int uintptr_t;
 
-typedef enum {
-    false = 0,
-    true = 1,
-} bool;
+#ifndef __bool_true_false_are_defined
+typedef _Bool bool;
+#define true 1
+#define false 0
+#define __bool_true_false_are_defined 1
+#endif
 
 #define NULL ((void *)0)
 

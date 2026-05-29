@@ -15,10 +15,12 @@ char *strcpy(char *dest, const char *src);
 char *strncpy(char *dest, const char *src, size_t count);
 char *strchr(const char *value, int needle);
 char *strrchr(const char *value, int needle);
+char *strtok(char *str, const char *delim);
 bool isspace(int ch);
 bool isdigit(int ch);
 bool isalpha(int ch);
 char tolower(char ch);
 char toupper(char ch);
+char *strdup(const char *s);
 
 #endif

@@ -21,6 +21,8 @@ typedef struct PACKED {
     u32 eip;
     u32 cs;
     u32 eflags;
+    u32 useresp;
+    u32 ss;
 } registers_t;
 
 typedef void (*irq_handler_t)(registers_t *regs);
@@ -28,5 +30,7 @@ typedef void (*irq_handler_t)(registers_t *regs);
 void idt_init(void);
 void irq_install_handler(u8 irq, irq_handler_t handler);
 void irq_remove_handler(u8 irq);
+bool idt_last_user_frame(registers_t *out);
+bool idt_last_user_syscall_frame(registers_t *out);
 
 #endif
