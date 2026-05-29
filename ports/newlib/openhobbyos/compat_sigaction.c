@@ -24,3 +24,14 @@ int sigaction(int signo, const struct sigaction *act, struct sigaction *oldact) 
 
     return 0;
 }
+
+unsigned int alarm(unsigned int seconds) {
+    (void)seconds;
+    return 0;
+}
+
+int sigsuspend(const sigset_t *set) {
+    (void)set;
+    errno = EINTR;
+    return -1;
+}

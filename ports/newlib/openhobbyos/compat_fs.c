@@ -240,26 +240,37 @@ int fcntl(int fd, int cmd, ...) {
 
     switch (cmd) {
         case F_GETFD:
-            return 0;
+            return oh_check_result(oh_fcntl_raw(fd, cmd, 0));
         case F_SETFD:
-            return 0;
+            return oh_check_result(oh_fcntl_raw(fd, cmd, (int) arg));
         case F_GETFL:
-            return 0;
+            return oh_check_result(oh_fcntl_raw(fd, cmd, 0));
         case F_SETFL:
-            (void) arg;
-            return 0;
+            return oh_check_result(oh_fcntl_raw(fd, cmd, (int) arg));
 #ifdef F_DUPFD
         case F_DUPFD:
+            return oh_check_result(oh_fcntl_raw(fd, cmd, (int) arg));
 #endif
 #ifdef F_DUPFD_CLOEXEC
         case F_DUPFD_CLOEXEC:
+            return oh_check_result(oh_fcntl_raw(fd, cmd, (int) arg));
 #endif
-            errno = ENOSYS;
-            return -1;
         default:
             errno = EINVAL;
             return -1;
     }
+}
+
+int chdir(const char *path) {
+    int result;
+
+    if (path == NULL) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    result = oh_chdir_raw(path);
+    return oh_check_result(result);
 }
 
 int chmod(const char *path, mode_t mode) {
@@ -314,9 +325,7 @@ int dup(int fd) {
     if (oh_validate_fd(fd) != 0) {
         return -1;
     }
-
-    errno = ENOSYS;
-    return -1;
+    return oh_check_result(oh_dup_raw(fd));
 }
 
 int dup2(int oldfd, int newfd) {
@@ -330,22 +339,36 @@ int dup2(int oldfd, int newfd) {
     if (oldfd == newfd) {
         return newfd;
     }
-
-    errno = ENOSYS;
-    return -1;
+    return oh_check_result(oh_dup2_raw(oldfd, newfd));
 }
 
 int pipe(int pipefd[2]) {
-    (void) pipefd;
-    errno = ENOSYS;
-    return -1;
+    if (pipefd == NULL) {
+        errno = EFAULT;
+        return -1;
+    }
+    return oh_check_result(oh_pipe_raw(pipefd));
 }
 
 int pipe2(int pipefd[2], int flags) {
-    (void) pipefd;
-    (void) flags;
-    errno = ENOSYS;
-    return -1;
+    if (flags != 0
+#ifdef O_CLOEXEC
+        && flags != O_CLOEXEC
+#endif
+#ifdef O_NONBLOCK
+        && flags != O_NONBLOCK
+#endif
+    ) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    if (pipe(pipefd) != 0) {
+        return -1;
+    }
+
+    /* The kernel side does not expose pipe flags yet, but the descriptors work. */
+    return 0;
 }
 
 char *realpath(const char *path, char *resolved_path) {

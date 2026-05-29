@@ -1,7 +1,5 @@
-%rename lib old_lib
-
 *startfile:
 crt0.o%s
 
 *lib:
--lopenhobbyosgloss %(old_lib)
+-lopenhobbyosgloss -lc -lgcc

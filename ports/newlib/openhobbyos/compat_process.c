@@ -6,6 +6,12 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
+#include "compat.h"
+
+/* Force link of __on_exit_args for _REENT_SMALL newlib atexit cleanup */
+extern char __on_exit_args;
+static const void * const __ohos_force_on_exit __attribute__((used)) = &__on_exit_args;
+
 struct __posix_spawn_file_actions {
     unsigned int count;
 };
@@ -17,16 +23,21 @@ struct __posix_spawnattr {
 };
 
 pid_t fork(void) {
-    errno = ENOSYS;
-    return -1;
+    int result = oh_fork_raw();
+    if (result < 0) {
+        errno = -result;
+        return -1;
+    }
+    return (pid_t) result;
 }
 
 int execve(const char *path, char *const argv[], char *const envp[]) {
-    (void) path;
-    (void) argv;
-    (void) envp;
-    errno = ENOSYS;
-    return -1;
+    int result = oh_execve_raw(path, argv, envp);
+    if (result < 0) {
+        errno = -result;
+        return -1;
+    }
+    return result;
 }
 
 int execvp(const char *file, char *const argv[]) {
@@ -64,13 +75,8 @@ int execl(const char *path, const char *arg, ...) {
 }
 
 pid_t waitpid(pid_t pid, int *status, int options) {
-    (void) pid;
-    (void) options;
-    if (status) {
-        *status = 0;
-    }
-    errno = ECHILD;
-    return -1;
+    int result = oh_waitpid_raw((int) pid, status, options);
+    return (result < 0) ? (pid_t) oh_check_result(result) : (pid_t) result;
 }
 
 int kill(pid_t pid, int sig) {
@@ -79,6 +85,14 @@ int kill(pid_t pid, int sig) {
     }
     errno = ESRCH;
     return -1;
+}
+
+pid_t setsid(void) {
+    return getpid();
+}
+
+int setegid(gid_t gid) {
+    return setgid(gid);
 }
 
 int posix_spawn_file_actions_init(posix_spawn_file_actions_t *actions) {
@@ -214,13 +228,21 @@ int posix_spawnattr_setpgroup(posix_spawnattr_t *attr, pid_t pgroup) {
 
 int posix_spawn(pid_t *pid, const char *path, const posix_spawn_file_actions_t *file_actions,
                 const posix_spawnattr_t *attrp, char *const argv[], char *const envp[]) {
-    (void) pid;
     (void) path;
     (void) file_actions;
     (void) attrp;
-    (void) argv;
-    (void) envp;
-    return ENOSYS;
+    int child_pid;
+
+    child_pid = oh_spawn_raw(path, argv, envp);
+    if (child_pid < 0) {
+        return errno ? errno : ENOSYS;
+    }
+
+    if (pid != NULL) {
+        *pid = (pid_t) child_pid;
+    }
+
+    return 0;
 }
 
 int posix_spawnp(pid_t *pid, const char *file, const posix_spawn_file_actions_t *file_actions,

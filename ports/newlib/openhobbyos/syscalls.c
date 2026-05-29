@@ -10,6 +10,8 @@
 #include <sys/uio.h>
 #include <unistd.h>
 
+#include "pseudofd.h"
+
 #ifdef st_atime
 #undef st_atime
 #endif
@@ -25,7 +27,12 @@
 
 static inline int oh_syscall0(int number) {
     int result;
-    __asm__ volatile ("int $0x80" : "=a"(result) : "a"(number) : "memory");
+    __asm__ volatile ("push %%ebx\n"
+                      "int $0x80\n"
+                      "pop %%ebx"
+                      : "=a"(result)
+                      : "a"(number)
+                      : "memory", "cc");
     return result;
 }
 
@@ -50,6 +57,48 @@ static inline int oh_syscall3(int number, int arg1, int arg2, int arg3) {
                       : "=a"(result)
                       : "a"(number), "b"(arg1), "c"(arg2), "d"(arg3)
                       : "memory");
+    return result;
+}
+
+static inline int oh_syscall4(int number, int arg1, int arg2, int arg3, int arg4) {
+    int result;
+    __asm__ volatile ("int $0x80"
+                      : "=a"(result)
+                      : "a"(number), "b"(arg1), "c"(arg2), "d"(arg3), "S"(arg4)
+                      : "memory");
+    return result;
+}
+
+static inline int oh_syscall5(int number, int arg1, int arg2, int arg3, int arg4, int arg5) {
+    int result;
+    __asm__ volatile ("push %%ebp\n"
+                      "mov %5, %%ebp\n"
+                      "int $0x80\n"
+                      "pop %%ebp"
+                      : "=a"(result)
+                      : "a"(number), "b"(arg1), "c"(arg2), "d"(arg3), "S"(arg4), "m"(arg5)
+                      : "memory");
+    return result;
+}
+
+static int oh_is_tty_fd(int fd) {
+    struct linux_termios termios;
+    return oh_syscall3(LINUX_SYS_IOCTL, fd, LINUX_TCGETS, (int)&termios) >= 0;
+}
+
+static int oh_wait_readable(int fd) {
+    struct linux_pollfd pfd;
+    int result;
+    int timeout_ms = 50;
+
+    pfd.fd = fd;
+    pfd.events = LINUX_POLLIN;
+    pfd.revents = 0;
+
+    do {
+        result = oh_syscall3(LINUX_SYS_POLL, (int)&pfd, 1, timeout_ms);
+    } while (result == 0);
+
     return result;
 }
 
@@ -109,6 +158,9 @@ void _exit_r(struct _reent *reent, int status) {
 }
 
 int close(int fd) {
+    if (oh_pseudofd_is(fd)) {
+        return oh_pseudofd_close(fd);
+    }
     int result = oh_syscall1(LINUX_SYS_CLOSE, fd);
     return oh_set_errno_result(result);
 }
@@ -127,6 +179,18 @@ int open(const char *path, int flags, ...) {
 }
 
 ssize_t read(int fd, void *buffer, size_t length) {
+    if (oh_pseudofd_is(fd)) {
+        return oh_pseudofd_read(fd, buffer, length);
+    }
+
+    if (length != 0 && oh_is_tty_fd(fd)) {
+        int ready = oh_wait_readable(fd);
+        if (ready < 0) {
+            errno = -ready;
+            return -1;
+        }
+    }
+
     return oh_set_errno_ssize(oh_syscall3(LINUX_SYS_READ, fd, (int) buffer, (int) length));
 }
 
@@ -154,6 +218,11 @@ off_t lseek(int fd, off_t offset, int whence) {
 
 int fstat(int fd, struct stat *statbuf) {
     struct linux_stat64 native_stat;
+
+    if (oh_pseudofd_is(fd)) {
+        return oh_pseudofd_fstat(fd, statbuf);
+    }
+
     int result = oh_syscall2(LINUX_SYS_FSTAT64, fd, (int) &native_stat);
 
     if (result < 0) {
@@ -235,30 +304,19 @@ ssize_t readlink(const char *path, char *buffer, size_t size) {
 }
 
 int unlink(const char *path) {
-    (void) path;
-    errno = EROFS;
-    return -1;
+    return oh_set_errno_result(oh_syscall1(OHOS_SYS_UNLINK, (int) path));
 }
 
 int mkdir(const char *path, mode_t mode) {
-    (void) path;
-    (void) mode;
-    errno = EROFS;
-    return -1;
+    return oh_set_errno_result(oh_syscall2(OHOS_SYS_MKDIR, (int) path, (int) mode));
 }
 
 int link(const char *existing, const char *new_link) {
-    (void) existing;
-    (void) new_link;
-    errno = EROFS;
-    return -1;
+    return oh_set_errno_result(oh_syscall2(LINUX_SYS_LINK, (int) existing, (int) new_link));
 }
 
 int rename(const char *old_name, const char *new_name) {
-    (void) old_name;
-    (void) new_name;
-    errno = EROFS;
-    return -1;
+    return oh_set_errno_result(oh_syscall2(LINUX_SYS_RENAME, (int) old_name, (int) new_name));
 }
 
 pid_t wait(int *status) {
@@ -275,7 +333,7 @@ clock_t times(struct tms *buffer) {
 
 int getentropy(void *buffer, size_t length) {
     unsigned char *bytes = (unsigned char *) buffer;
-    int seed = oh_syscall0(LINUX_SYS_GETPID);
+    int seed = oh_syscall1(LINUX_SYS_GETPID, 0);
 
     for (size_t i = 0; i < length; ++i) {
         seed = seed * 1103515245 + 12345;

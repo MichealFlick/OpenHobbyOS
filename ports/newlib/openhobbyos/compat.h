@@ -4,6 +4,7 @@
 #include <errno.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/types.h>
@@ -22,7 +23,12 @@
 
 static inline int oh_syscall0(int number) {
     int result;
-    __asm__ volatile ("int $0x80" : "=a"(result) : "a"(number) : "memory");
+    __asm__ volatile ("push %%ebx\n"
+                      "int $0x80\n"
+                      "pop %%ebx"
+                      : "=a"(result)
+                      : "a"(number)
+                      : "memory", "cc");
     return result;
 }
 
@@ -55,6 +61,15 @@ static inline int oh_syscall4(int number, int arg1, int arg2, int arg3, int arg4
     __asm__ volatile ("int $0x80"
                       : "=a"(result)
                       : "a"(number), "b"(arg1), "c"(arg2), "d"(arg3), "S"(arg4)
+                      : "memory");
+    return result;
+}
+
+static inline int oh_syscall5(int number, int arg1, int arg2, int arg3, int arg4, int arg5) {
+    int result;
+    __asm__ volatile ("int $0x80"
+                      : "=a"(result)
+                      : "a"(number), "b"(arg1), "c"(arg2), "d"(arg3), "S"(arg4), "D"(arg5)
                       : "memory");
     return result;
 }
@@ -148,27 +163,79 @@ static inline int oh_chdir_raw(const char *path) {
 }
 
 static inline int oh_getuid_raw(void) {
-    return oh_syscall0(LINUX_SYS_GETUID32);
+    return oh_syscall1(LINUX_SYS_GETUID32, 0);
 }
 
 static inline int oh_getgid_raw(void) {
-    return oh_syscall0(LINUX_SYS_GETGID32);
+    return oh_syscall1(LINUX_SYS_GETGID32, 0);
 }
 
 static inline int oh_geteuid_raw(void) {
-    return oh_syscall0(LINUX_SYS_GETEUID32);
+    return oh_syscall1(LINUX_SYS_GETEUID32, 0);
 }
 
 static inline int oh_getegid_raw(void) {
-    return oh_syscall0(LINUX_SYS_GETEGID32);
+    return oh_syscall1(LINUX_SYS_GETEGID32, 0);
 }
 
 static inline int oh_getpid_raw(void) {
-    return oh_syscall0(LINUX_SYS_GETPID);
+    return oh_syscall1(LINUX_SYS_GETPID, 0);
 }
 
 static inline int oh_ioctl_raw(int fd, unsigned long request, void *argp) {
     return oh_syscall3(LINUX_SYS_IOCTL, fd, (int) request, (int) argp);
+}
+
+static inline int oh_fcntl_raw(int fd, int cmd, int arg) {
+    return oh_syscall3(LINUX_SYS_FCNTL, fd, cmd, arg);
+}
+
+static inline int oh_fork_raw(void) {
+    return oh_syscall0(LINUX_SYS_FORK);
+}
+
+static inline int oh_execve_raw(const char *path, char *const argv[], char *const envp[]) {
+    return oh_syscall3(LINUX_SYS_EXECVE, (int) path, (int) argv, (int) envp);
+}
+
+static inline int oh_spawn_raw(const char *path, char *const argv[], char *const envp[]) {
+    return oh_syscall3(OHOS_SYS_SPAWN, (int) path, (int) argv, (int) envp);
+}
+
+static inline int oh_waitpid_raw(int pid, int *status, int options) {
+    return oh_syscall3(OHOS_SYS_WAITPID, pid, (int) status, options);
+}
+
+static inline int oh_sched_yield_raw(void) {
+    return oh_syscall0(OHOS_SYS_YIELD);
+}
+
+static inline int oh_dup_raw(int fd) {
+    return oh_syscall1(LINUX_SYS_DUP, fd);
+}
+
+static inline int oh_dup2_raw(int oldfd, int newfd) {
+    return oh_syscall2(LINUX_SYS_DUP2, oldfd, newfd);
+}
+
+static inline int oh_pipe_raw(int pipefd[2]) {
+    return oh_syscall1(LINUX_SYS_PIPE, (int) pipefd);
+}
+
+static inline int oh_mmap2_raw(void *addr, size_t length, int prot, int flags, int fd, size_t page_offset) {
+    return oh_syscall6(LINUX_SYS_MMAP2, (int) addr, (int) length, prot, flags, fd, (int) page_offset);
+}
+
+static inline int oh_munmap_raw(void *addr, size_t length) {
+    return oh_syscall2(LINUX_SYS_MUNMAP, (int) addr, (int) length);
+}
+
+static inline int oh_sendmsg_raw(int sockfd, const struct msghdr *msg, int flags) {
+    return oh_syscall3(OHOS_SYS_SENDMSG, sockfd, (int) msg, flags);
+}
+
+static inline int oh_recvmsg_raw(int sockfd, struct msghdr *msg, int flags) {
+    return oh_syscall3(OHOS_SYS_RECVMSG, sockfd, (int) msg, flags);
 }
 
 static inline void oh_copy_stat(struct stat *out, const struct linux_stat64 *in) {

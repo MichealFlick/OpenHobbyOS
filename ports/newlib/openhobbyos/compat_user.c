@@ -12,8 +12,8 @@
 static const char oh_user_name[] = "root";
 static const char oh_user_passwd[] = "x";
 static const char oh_user_gecos[] = "OpenHobbyOS";
-static const char oh_user_home[] = "/";
-static const char oh_user_shell[] = "/bin/sh";
+static const char oh_user_home[] = "/root";
+static const char oh_user_shell[] = "/bin/gosh";
 static const char oh_group_name[] = "root";
 
 static struct passwd oh_passwd = {

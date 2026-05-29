@@ -118,9 +118,12 @@ fi
 mkdir -p "$TARGET_LIB_DIR"
 
 install -m 644 "$BUILD_DIR/crt0.o" "$SYSROOT/lib/crt0.o"
+install -m 644 "$BUILD_DIR/crtn.o" "$SYSROOT/lib/crtn.o"
+install -m 644 "$ROOT/user.ld" "$SYSROOT/lib/user.ld"
 install -m 644 "$BUILD_DIR/libopenhobbyosgloss.a" "$SYSROOT/lib/libopenhobbyosgloss.a"
 install -m 644 "$ROOT/ports/newlib/openhobbyos/openhobbyos.specs" "$SYSROOT/lib/openhobbyos.specs"
 install -m 644 "$BUILD_DIR/libopenhobbyosgloss.a" "$TARGET_LIB_DIR/libdl.a"
+install -m 644 "$BUILD_DIR/libopenhobbyosgloss.a" "$TARGET_LIB_DIR/librt.a"
 if [[ -f "$BUILD_DIR/libpthread.a" ]]; then
     install -m 644 "$BUILD_DIR/libpthread.a" "$TARGET_LIB_DIR/libpthread.a"
 fi

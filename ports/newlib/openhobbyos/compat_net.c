@@ -8,11 +8,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/utsname.h>
 #include <time.h>
 #include <unistd.h>
+
+#include "compat.h"
+#include "pseudofd.h"
 
 const struct in6_addr in6addr_any = IN6ADDR_ANY_INIT;
 const struct in6_addr in6addr_loopback = IN6ADDR_LOOPBACK_INIT;
@@ -332,22 +336,8 @@ struct servent *getservbyname(const char *name, const char *proto) {
         errno = ENOENT;
         return NULL;
     }
-    if (strcmp(name, "x11") != 0) {
-        errno = ENOENT;
-        return NULL;
-    }
-
-    strncpy(service_name, name, sizeof(service_name) - 1);
-    service_name[sizeof(service_name) - 1] = '\0';
-    strncpy(service_proto, proto, sizeof(service_proto) - 1);
-    service_proto[sizeof(service_proto) - 1] = '\0';
-
-    aliases[0] = NULL;
-    service.s_name = service_name;
-    service.s_aliases = aliases;
-    service.s_port = htons(6000);
-    service.s_proto = service_proto;
-    return &service;
+    errno = ENOENT;
+    return NULL;
 }
 
 static struct ifaddrs *oh_add_ifaddr(struct ifaddrs **tail, int family) {
@@ -580,7 +570,52 @@ const char *gai_strerror(int errcode) {
 }
 
 int poll(struct pollfd *fds, nfds_t count, int timeout) {
+    bool has_pseudofd = false;
     int ready = 0;
+
+    for (nfds_t i = 0; i < count; ++i) {
+        if (fds[i].fd >= 0 && oh_pseudofd_is(fds[i].fd)) {
+            has_pseudofd = true;
+            break;
+        }
+    }
+
+    if (!has_pseudofd) {
+        struct linux_pollfd native[count ? count : 1];
+        int remaining = timeout;
+
+        for (nfds_t i = 0; i < count; ++i) {
+            native[i].fd = fds[i].fd;
+            native[i].events = (uint16_t)fds[i].events;
+            native[i].revents = 0;
+        }
+
+        do {
+            int slice = remaining;
+
+            if (timeout < 0 || slice > 50) {
+                slice = 50;
+            }
+
+            ready = oh_syscall3(LINUX_SYS_POLL, count ? (int)native : 0, (int)count, slice);
+            if (ready < 0) {
+                errno = -ready;
+                return -1;
+            }
+            if (ready > 0 || timeout == 0) {
+                break;
+            }
+            if (timeout > 0) {
+                remaining -= slice;
+            }
+        } while (timeout < 0 || remaining > 0);
+
+        for (nfds_t i = 0; i < count; ++i) {
+            fds[i].revents = (short)native[i].revents;
+        }
+
+        return ready;
+    }
 
     for (nfds_t i = 0; i < count; ++i) {
         struct stat st;
@@ -590,9 +625,34 @@ int poll(struct pollfd *fds, nfds_t count, int timeout) {
             continue;
         }
 
+        if (oh_pseudofd_is(fds[i].fd)) {
+            if ((fds[i].events & POLLIN) != 0) {
+                struct itimerspec current;
+                if (timerfd_gettime(fds[i].fd, &current) == 0 &&
+                    (current.it_value.tv_sec == 0 && current.it_value.tv_nsec == 0)) {
+                    fds[i].revents |= POLLIN;
+                }
+            }
+            if (fds[i].events & POLLOUT) {
+                fds[i].revents |= POLLOUT;
+            }
+            if (fds[i].revents) {
+                ready++;
+            }
+            continue;
+        }
+
         if (fstat(fds[i].fd, &st) == 0 || isatty(fds[i].fd)) {
+            bool is_sock = (st.st_mode & S_IFMT) == S_IFSOCK;
             if (fds[i].events & POLLIN) {
-                fds[i].revents |= POLLIN;
+                if (is_sock) {
+                    int nbytes = 0;
+                    if (ioctl(fds[i].fd, FIONREAD, &nbytes) == 0 && nbytes > 0) {
+                        fds[i].revents |= POLLIN;
+                    }
+                } else {
+                    fds[i].revents |= POLLIN;
+                }
             }
             if (fds[i].events & POLLOUT) {
                 fds[i].revents |= POLLOUT;
@@ -617,96 +677,55 @@ int poll(struct pollfd *fds, nfds_t count, int timeout) {
 }
 
 int socket(int domain, int type, int protocol) {
-    (void) domain;
-    (void) type;
-    (void) protocol;
-    errno = ENOSYS;
-    return -1;
+    return oh_check_result(oh_syscall3(LINUX_SYS_SOCKET, domain, type, protocol));
 }
 
 int listen(int sockfd, int backlog) {
-    (void) sockfd;
-    (void) backlog;
-    errno = ENOSYS;
-    return -1;
+    return oh_check_result(oh_syscall2(LINUX_SYS_LISTEN, sockfd, backlog));
 }
 
 int accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen) {
-    (void) sockfd;
-    (void) addr;
-    (void) addrlen;
-    errno = ENOSYS;
-    return -1;
+    return oh_check_result(oh_syscall3(LINUX_SYS_ACCEPT, sockfd, (int)addr, (int)addrlen));
 }
 
 int bind(int sockfd, const struct sockaddr *addr, socklen_t addrlen) {
-    (void) sockfd;
-    (void) addr;
-    (void) addrlen;
-    errno = ENOSYS;
-    return -1;
+    return oh_check_result(oh_syscall3(LINUX_SYS_BIND, sockfd, (int)addr, (int)addrlen));
 }
 
 int connect(int sockfd, const struct sockaddr *addr, socklen_t addrlen) {
-    (void) sockfd;
-    (void) addr;
-    (void) addrlen;
-    errno = ENOSYS;
-    return -1;
+    return oh_check_result(oh_syscall3(LINUX_SYS_CONNECT, sockfd, (int)addr, (int)addrlen));
 }
 
 int getsockname(int sockfd, struct sockaddr *addr, socklen_t *addrlen) {
-    (void) sockfd;
-    (void) addr;
-    (void) addrlen;
-    errno = ENOSYS;
-    return -1;
+    return oh_check_result(oh_syscall3(LINUX_SYS_GETSOCKNAME, sockfd, (int)addr, (int)addrlen));
 }
 
 int getpeername(int sockfd, struct sockaddr *addr, socklen_t *addrlen) {
-    (void) sockfd;
-    (void) addr;
-    (void) addrlen;
-    errno = ENOSYS;
-    return -1;
+    return oh_check_result(oh_syscall3(LINUX_SYS_GETPEERNAME, sockfd, (int)addr, (int)addrlen));
 }
 
 int setsockopt(int sockfd, int level, int optname, const void *optval, socklen_t optlen) {
-    (void) sockfd;
-    (void) level;
-    (void) optname;
-    (void) optval;
-    (void) optlen;
-    errno = ENOSYS;
-    return -1;
+    return oh_check_result(oh_syscall5(LINUX_SYS_SETSOCKOPT, sockfd, level, optname, (int)optval, (int)optlen));
 }
 
 int getsockopt(int sockfd, int level, int optname, void *optval, socklen_t *optlen) {
-    (void) sockfd;
-    (void) level;
-    (void) optname;
-    (void) optval;
-    (void) optlen;
-    errno = ENOSYS;
-    return -1;
+    return oh_check_result(oh_syscall5(LINUX_SYS_GETSOCKOPT, sockfd, level, optname, (int)optval, (int)optlen));
 }
 
 ssize_t send(int sockfd, const void *buffer, size_t length, int flags) {
-    (void) sockfd;
-    (void) buffer;
-    (void) length;
-    (void) flags;
-    errno = ENOSYS;
-    return -1;
+    return oh_check_ssize(oh_syscall4(LINUX_SYS_SEND, sockfd, (int)buffer, (int)length, flags));
 }
 
 ssize_t recv(int sockfd, void *buffer, size_t length, int flags) {
-    (void) sockfd;
-    (void) buffer;
-    (void) length;
-    (void) flags;
-    errno = ENOSYS;
-    return -1;
+    return oh_check_ssize(oh_syscall4(LINUX_SYS_RECV, sockfd, (int)buffer, (int)length, flags));
+}
+
+ssize_t sendmsg(int sockfd, const struct msghdr *msg, int flags) {
+    return oh_check_ssize(oh_sendmsg_raw(sockfd, msg, flags));
+}
+
+ssize_t recvmsg(int sockfd, struct msghdr *msg, int flags) {
+    return oh_check_ssize(oh_recvmsg_raw(sockfd, msg, flags));
 }
 
 ssize_t sendto(int sockfd, const void *buffer, size_t length, int flags, const struct sockaddr *dest, socklen_t destlen) {
@@ -732,8 +751,33 @@ ssize_t recvfrom(int sockfd, void *buffer, size_t length, int flags, struct sock
 }
 
 int shutdown(int sockfd, int how) {
-    (void) sockfd;
-    (void) how;
-    errno = ENOSYS;
-    return -1;
+    return oh_check_result(oh_syscall2(LINUX_SYS_SHUTDOWN, sockfd, how));
+}
+
+int epoll_create1(int flags) {
+    return oh_epoll_create1(flags);
+}
+
+int epoll_ctl(int epfd, int op, int fd, struct epoll_event *event) {
+    return oh_epoll_ctl(epfd, op, fd, event);
+}
+
+int epoll_wait(int epfd, struct epoll_event *events, int maxevents, int timeout) {
+    return oh_epoll_wait(epfd, events, maxevents, timeout);
+}
+
+int timerfd_create(int clockid, int flags) {
+    return oh_timerfd_create(clockid, flags);
+}
+
+int timerfd_settime(int fd, int flags, const struct itimerspec *new_value, struct itimerspec *old_value) {
+    return oh_timerfd_settime(fd, flags, new_value, old_value);
+}
+
+int timerfd_gettime(int fd, struct itimerspec *curr_value) {
+    return oh_timerfd_gettime(fd, curr_value);
+}
+
+int signalfd(int fd, const sigset_t *mask, int flags) {
+    return oh_signalfd_create(fd, mask, flags);
 }

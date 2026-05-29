@@ -6,6 +6,7 @@ _start:
     movl (%esp), %eax
     leal 4(%esp), %ebx
     leal 8(%esp,%eax,4), %ecx
+    call __libc_init_array
     pushl %ecx
     pushl %ebx
     pushl %eax
