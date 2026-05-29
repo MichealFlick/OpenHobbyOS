@@ -39,7 +39,8 @@ meson_args=(
     -Dmmx=disabled
     -Dsse2=disabled
     -Dssse3=disabled
-    -Dtls=enabled
+    -Dtls=disabled
+    -Dc_args=-DPIXMAN_NO_TLS
     -Dgnu-inline-asm=disabled
     --buildtype release
 )

@@ -16,8 +16,8 @@ rm -rf "$BUILD_DIR/CMakeCache.txt" "$BUILD_DIR/CMakeFiles"
 export PATH="$ROOT/toolchain/bin:$PATH"
 export OPENHOBBYOS_SYSROOT="$SYSROOT"
 
-FF_CFLAGS="-O2 -D_GNU_SOURCE -D_DEFAULT_SOURCE -D_POSIX_C_SOURCE=200809L -D_POSIX_TIMERS=200809L -D_POSIX_MONOTONIC_CLOCK=200809L -D_POSIX_CLOCK_SELECTION=200809L -Dgetline=__getline -Dgetdelim=__getdelim"
-FF_RELEASE_CFLAGS="-O3 -DNDEBUG -Wno-char-subscripts"
+FF_CFLAGS="-O2 -fno-stack-protector -D_GNU_SOURCE -D_DEFAULT_SOURCE -D_POSIX_C_SOURCE=200809L -D_POSIX_TIMERS=200809L -D_POSIX_MONOTONIC_CLOCK=200809L -D_POSIX_CLOCK_SELECTION=200809L -Dgetline=__getline -Dgetdelim=__getdelim"
+FF_RELEASE_CFLAGS="-O3 -DNDEBUG -Wno-char-subscripts -fno-stack-protector"
 
 cmake -S "$ROOT/user/lib/fastfetch" -B "$BUILD_DIR" \
     -DCMAKE_TOOLCHAIN_FILE="$ROOT/ports/fastfetch/openhobbyos-toolchain.cmake" \

@@ -11,7 +11,7 @@ pkg_config_libdir = '@SYSROOT@/lib/pkgconfig:@SYSROOT@/share/pkgconfig:@SYSROOT@
 
 [built-in options]
 c_args = ['--sysroot=@SYSROOT@', '-O2', '-ffreestanding', '-fno-pic', '-fno-pie']
-c_link_args = ['--sysroot=@SYSROOT@', '-static', '-nostartfiles', '-lopenhobbyosgloss']
+c_link_args = ['--sysroot=@SYSROOT@', '-static', '-nostartfiles', '-Wl,-T,@SYSROOT@/lib/user.ld', '-lopenhobbyosgloss']
 
 [host_machine]
 system = 'linux'
