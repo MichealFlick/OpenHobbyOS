@@ -1,11 +1,65 @@
 #include "runtime.h"
 #include "syscall.h"
 
+static int hello_run_pulse(int argc, char **argv) {
+    char line[96];
+    struct linux_timespec req;
+    int ok = 0;
+    unsigned int rounds;
+    unsigned int delay_seconds;
+    int pid = sys_getpid();
+
+    if (argc != 4) {
+        u_puts("hello: usage: hello pulse <rounds> <delay-seconds>\n");
+        return 1;
+    }
+
+    rounds = u_parse_uint(argv[2], &ok);
+    if (!ok || rounds == 0) {
+        u_puts("hello: rounds must be a positive decimal\n");
+        return 1;
+    }
+
+    delay_seconds = u_parse_uint(argv[3], &ok);
+    if (!ok) {
+        u_puts("hello: delay must be a decimal number of seconds\n");
+        return 1;
+    }
+
+    req.tv_sec = (int)delay_seconds;
+    req.tv_nsec = 0;
+
+    for (unsigned int index = 0; index < rounds; ++index) {
+        unsigned int used = 0;
+
+        used = u_append_text(line, sizeof(line), used, "hello pulse pid=");
+        used = u_append_int(line, sizeof(line), used, pid);
+        used = u_append_text(line, sizeof(line), used, " step=");
+        used = u_append_uint(line, sizeof(line), used, index + 1u);
+        used = u_append_text(line, sizeof(line), used, "/");
+        used = u_append_uint(line, sizeof(line), used, rounds);
+        used = u_append_text(line, sizeof(line), used, "\n");
+        u_write_buffer(line, used);
+
+        if (delay_seconds == 0) {
+            sys_sched_yield();
+        } else if (index + 1u < rounds) {
+            sys_nanosleep(&req, 0);
+        }
+    }
+
+    return 0;
+}
+
 int main(int argc, char **argv, char **envp) {
     char line[96];
     int read_count;
 
     (void)envp;
+
+    if (argc >= 2 && u_strcmp(argv[1], "pulse") == 0) {
+        return hello_run_pulse(argc, argv);
+    }
 
     u_puts("hello from /bin/hello\n");
     u_puts("pid: ");
