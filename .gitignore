@@ -28,3 +28,5 @@ __pycache__/
 *.tgz
 *.7z
 *.rar
+src/.deps/
+src/blake2/
