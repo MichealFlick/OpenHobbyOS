@@ -1,35 +1,42 @@
 {
-  "$schema": "https://github.com/fastfetch-cli/fastfetch/raw/dev/doc/json_schema.json",
-  "logo": {
-    "type": "none"
-  },
-  "display": {
-    "separator": " : "
-  },
-  "modules": [
-    {
-      "type": "os",
-      "key": "OS"
+    "$schema": "https://github.com/fastfetch-cli/fastfetch/raw/dev/doc/json_schema.json",
+    "logo": {
+        "source": "/etc/xdg/fastfetch/ohos_logo_small.txt",
+        "type": "file",
+        "padding": {
+            "right": 2
+        }
     },
-    {
-      "type": "host",
-      "key": "Host"
+    "display": {
+        "separator": " : ",
+        "color": "36"
     },
-    {
-      "type": "kernel",
-      "key": "Kernel"
-    },
-    {
-      "type": "cpu",
-      "key": "CPU"
-    },
-    {
-      "type": "memory",
-      "key": "Memory"
-    },
-    {
-      "type": "uptime",
-      "key": "Uptime"
-    }
-  ]
+    "modules": [
+        "title",
+        {
+            "type": "os",
+            "key": "OS",
+            "keyColor": "36"
+        },
+        {
+            "type": "kernel",
+            "key": "Kernel",
+            "keyColor": "36"
+        },
+        {
+            "type": "cpu",
+            "key": "CPU",
+            "keyColor": "36"
+        },
+        {
+            "type": "memory",
+            "key": "Memory",
+            "keyColor": "36"
+        },
+        {
+            "type": "uptime",
+            "key": "Uptime",
+            "keyColor": "36"
+        }
+    ]
 }
