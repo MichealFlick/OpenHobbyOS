@@ -2,7 +2,12 @@
 
 static int syscall0(int number) {
     int result;
-    __asm__ volatile ("int $0x80" : "=a"(result) : "a"(number) : "memory");
+    __asm__ volatile ("push %%ebx\n"
+                      "int $0x80\n"
+                      "pop %%ebx"
+                      : "=a"(result)
+                      : "a"(number)
+                      : "memory", "cc");
     return result;
 }
 
@@ -84,7 +89,23 @@ int sys_lseek(int fd, int offset, int whence) {
 }
 
 int sys_getpid(void) {
-    return syscall0(LINUX_SYS_GETPID);
+    return syscall1(LINUX_SYS_GETPID, 0);
+}
+
+int sys_pipe(int pipefd[2]) {
+    return syscall1(LINUX_SYS_PIPE, (int)pipefd);
+}
+
+int sys_dup2(int oldfd, int newfd) {
+    return syscall2(LINUX_SYS_DUP2, oldfd, newfd);
+}
+
+int sys_fork(void) {
+    return syscall0(LINUX_SYS_FORK);
+}
+
+int sys_execve(const char *path, char *const argv[], char *const envp[]) {
+    return syscall3(LINUX_SYS_EXECVE, (int)path, (int)argv, (int)envp);
 }
 
 void *sys_brk(void *requested) {
@@ -131,6 +152,10 @@ int sys_munmap(void *addr, unsigned int length) {
     return syscall2(LINUX_SYS_MUNMAP, (int)addr, (int)length);
 }
 
+int sys_stat(const char *path, struct linux_stat64 *stat) {
+    return syscall2(LINUX_SYS_STAT64, (int)path, (int)stat);
+}
+
 int sys_stat64(const char *path, struct linux_stat64 *stat) {
     return syscall2(LINUX_SYS_STAT64, (int)path, (int)stat);
 }
@@ -144,19 +169,19 @@ int sys_getdents64(int fd, void *buffer, unsigned int size) {
 }
 
 int sys_getuid32(void) {
-    return syscall0(LINUX_SYS_GETUID32);
+    return syscall1(LINUX_SYS_GETUID32, 0);
 }
 
 int sys_getgid32(void) {
-    return syscall0(LINUX_SYS_GETGID32);
+    return syscall1(LINUX_SYS_GETGID32, 0);
 }
 
 int sys_geteuid32(void) {
-    return syscall0(LINUX_SYS_GETEUID32);
+    return syscall1(LINUX_SYS_GETEUID32, 0);
 }
 
 int sys_getegid32(void) {
-    return syscall0(LINUX_SYS_GETEGID32);
+    return syscall1(LINUX_SYS_GETEGID32, 0);
 }
 
 int sys_clock_gettime(int clock_id, struct linux_timespec *spec) {
@@ -169,4 +194,44 @@ int sys_gettimeofday(struct linux_timeval *tv, void *tz) {
 
 int sys_nanosleep(const struct linux_timespec *req, struct linux_timespec *rem) {
     return syscall2(LINUX_SYS_NANOSLEEP, (int)req, (int)rem);
+}
+
+int sys_spawn(const char *path, const char *const argv[]) {
+    return syscall3(OHOS_SYS_SPAWN, (int)path, (int)argv, 0);
+}
+
+int sys_waitpid(int pid, int *status, int options) {
+    return syscall3(OHOS_SYS_WAITPID, pid, (int)status, options);
+}
+
+int sys_sched_yield(void) {
+    return syscall0(OHOS_SYS_YIELD);
+}
+
+int sys_mkdir(const char *path, int mode) {
+    return syscall2(OHOS_SYS_MKDIR, (int)path, mode);
+}
+
+int sys_reboot(void) {
+    return syscall0(OHOS_SYS_REBOOT);
+}
+
+int sys_shutdown(void) {
+    return syscall0(OHOS_SYS_SHUTDOWN);
+}
+
+int sys_suspend(void) {
+    return syscall0(OHOS_SYS_SUSPEND);
+}
+
+int sys_memstat(unsigned int buffer[5]) {
+    return syscall1(OHOS_SYS_MEMSTAT, (int)buffer);
+}
+
+int sys_ticks(void) {
+    return syscall0(OHOS_SYS_TICKS);
+}
+
+int sys_tickfreq(void) {
+    return syscall0(OHOS_SYS_TICKFREQ);
 }

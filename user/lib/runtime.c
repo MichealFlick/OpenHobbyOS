@@ -80,10 +80,14 @@ void *u_memcpy(void *dest, const void *src, unsigned int length) {
 }
 
 void u_puts(const char *text) {
-    sys_write(1, text, u_strlen(text));
+    u_write_buffer(text, u_strlen(text));
 }
 
 void u_putsn(const char *text, unsigned int length) {
+    u_write_buffer(text, length);
+}
+
+void u_write_buffer(const char *text, unsigned int length) {
     sys_write(1, text, length);
 }
 
@@ -158,6 +162,57 @@ void u_put_u64(unsigned long long value) {
         char ch = buffer[--used];
         sys_write(1, &ch, 1);
     }
+}
+
+unsigned int u_append_text(char *dest, unsigned int size, unsigned int used, const char *src) {
+    if (!dest || size == 0 || used >= size) {
+        return used;
+    }
+
+    while (*src && used + 1u < size) {
+        dest[used++] = *src++;
+    }
+
+    dest[used] = '\0';
+    return used;
+}
+
+unsigned int u_append_uint(char *dest, unsigned int size, unsigned int used, unsigned int value) {
+    char buffer[16];
+    unsigned int digits = 0;
+
+    if (!dest || size == 0 || used >= size) {
+        return used;
+    }
+
+    if (value == 0) {
+        if (used + 1u < size) {
+            dest[used++] = '0';
+            dest[used] = '\0';
+        }
+        return used;
+    }
+
+    while (value && digits < sizeof(buffer)) {
+        buffer[digits++] = (char)('0' + (value % 10u));
+        value /= 10u;
+    }
+
+    while (digits && used + 1u < size) {
+        dest[used++] = buffer[--digits];
+    }
+
+    dest[used] = '\0';
+    return used;
+}
+
+unsigned int u_append_int(char *dest, unsigned int size, unsigned int used, int value) {
+    if (value < 0) {
+        used = u_append_text(dest, size, used, "-");
+        return u_append_uint(dest, size, used, (unsigned int)(-value));
+    }
+
+    return u_append_uint(dest, size, used, (unsigned int)value);
 }
 
 void u_print_uname(const struct linux_utsname *name) {
