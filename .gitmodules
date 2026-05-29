@@ -1,36 +1,33 @@
 [submodule "user/lib/fastfetch"]
 	path = user/lib/fastfetch
 	url = https://github.com/fastfetch-cli/fastfetch
-[submodule "user/lib/xserver"]
-	path = user/lib/xserver
-	url = https://gitlab.freedesktop.org/xorg/xserver
 [submodule "user/lib/newlib-cygwin"]
 	path = user/lib/newlib-cygwin
 	url = https://sourceware.org/git/newlib-cygwin.git
-[submodule "user/lib/xorgproto"]
-	path = user/lib/xorgproto
-	url = https://gitlab.freedesktop.org/xorg/proto/xorgproto.git
-[submodule "user/lib/xtrans"]
-	path = user/lib/xtrans
-	url = https://gitlab.freedesktop.org/xorg/lib/libxtrans.git
-[submodule "user/lib/libxau"]
-	path = user/lib/libxau
-	url = https://gitlab.freedesktop.org/xorg/lib/libxau.git
-[submodule "user/lib/libfontenc"]
-	path = user/lib/libfontenc
-	url = https://gitlab.freedesktop.org/xorg/lib/libfontenc.git
 [submodule "user/lib/pixman"]
 	path = user/lib/pixman
 	url = https://gitlab.freedesktop.org/pixman/pixman.git
-[submodule "user/lib/libxkbfile"]
-	path = user/lib/libxkbfile
-	url = https://gitlab.freedesktop.org/xorg/lib/libxkbfile.git
-[submodule "user/lib/libxfont"]
-	path = user/lib/libxfont
-	url = https://gitlab.freedesktop.org/xorg/lib/libXfont.git
-[submodule "user/lib/libx11"]
-	path = user/lib/libx11
-	url = https://gitlab.freedesktop.org/xorg/lib/libX11.git
 [submodule "user/lib/zlib"]
 	path = user/lib/zlib
 	url = https://github.com/madler/zlib.git
+
+[submodule "user/lib/libtsm"]
+	path = user/lib/libtsm
+	url = https://github.com/Aetf/libtsm
+
+[submodule "user/lib/lwip"]
+	path = user/lib/lwip
+	url = https://github.com/lwip-tcpip/lwip.git
+
+[submodule "user/lib/lodepng"]
+	path = user/lib/lodepng
+	url = https://github.com/lvandeve/lodepng.git
+
+[submodule "user/lib/doomgeneric"]
+	path = user/lib/doomgeneric
+	url = https://github.com/ozkl/doomgeneric.git
+
+[submodule "user/lib/uACPI"]
+	path = user/lib/uACPI
+	url = https://github.com/uacpi/uacpi.git
+
