@@ -16,8 +16,8 @@ def pack_path(path: str) -> bytes:
 
 
 def main() -> int:
-    if len(sys.argv) < 3:
-        print("usage: mkramdisk.py OUTPUT SRC::DEST [...]", file=sys.stderr)
+    if len(sys.argv) < 2:
+        print("usage: mkramdisk.py OUTPUT [SRC::DEST ...]", file=sys.stderr)
         return 1
 
     output = sys.argv[1]
