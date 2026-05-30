@@ -38,7 +38,7 @@ It does not have:
 - **lwIP TCP/IP** talking to real hardware through an RTL8139 NIC driver. I can ping things. Sometimes they ping back.
 - **ACPI power management** via uACPI. Shutdown, reboot, suspend. I control the power grid now.
 - **newlib C library** cross-compiled for `i686-openhobbyos-elf`. Your userspace speaks C.
-- **Ported software**: fastfetch, Doom, XNX compositor + demo, lwIP, libtsm, uACPI, pixman, zlib.
+- **Ported software**: fastfetch, Doom, XNX compositor + demo, Lua 5.5, FFmpeg, TinyGL, gears, lwIP, libtsm, uACPI, pixman, zlib.
 
 ---
 
@@ -168,6 +168,14 @@ doomgeneric : for making doom even run
 libtsm : for being an actually correct state machine for VT100.
 
 fastfetch : for making things look more ric-ey
+
+lua : the scripting language that refuses to be unused
+
+ffmpeg : the multimedia library i will never use
+
+tinygl : opengl in a shoebox
+
+gears : spinning for the sake of spinning
 
 
 ---
