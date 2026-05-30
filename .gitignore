@@ -31,5 +31,4 @@ __pycache__/
 src/.deps/
 src/blake2/
 
-# FFmpeg source (standalone checkout, not a submodule)
-/user/lib/ffmpeg/
+

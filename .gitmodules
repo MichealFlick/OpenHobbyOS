@@ -31,3 +31,12 @@
 	path = user/lib/uACPI
 	url = https://github.com/uacpi/uacpi.git
 
+[submodule "user/lib/lua"]
+	path = user/lib/lua
+	url = https://github.com/lua/lua
+[submodule "user/lib/ffmpeg"]
+	path = user/lib/ffmpeg
+	url = https://github.com/ffmpeg/ffmpeg
+[submodule "user/lib/tinygl"]
+	path = user/lib/tinygl
+	url = https://github.com/MichealFlick/tinygl
