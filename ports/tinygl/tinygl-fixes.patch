@@ -1,0 +1,187 @@
+diff --git a/src/zbuffer.c b/src/zbuffer.c
+index d32d9e1..dc01a8d 100644
+--- a/src/zbuffer.c
++++ b/src/zbuffer.c
+@@ -24,7 +24,7 @@ ZBuffer *ZB_open(GLint xsize,
+     zb->xsize = xsize & ~3;
+     zb->ysize = ysize;
+ 
+-    zb->linesize = (xsize * PSZB);
++    zb->linesize = (zb->xsize * PSZB);
+ 
+     switch (mode) {
+ #if TGL_HAS(32_BITS)
+diff --git a/src/zpostprocess.c b/src/zpostprocess.c
+index 4c50103..d7da99a 100644
+--- a/src/zpostprocess.c
++++ b/src/zpostprocess.c
+@@ -14,9 +14,14 @@ void glPostProcess(
+ #ifdef _OPENMP
+ #pragma omp parallel for collapse(2)
+ #endif
+-    for (j = 0; j < c->zb->ysize; j++)
+-        for (i = 0; i < c->zb->xsize; i++)
+-            c->zb->pbuf[i + j * (c->zb->xsize)] =
+-                postprocess(i, j, c->zb->pbuf[i + j * (c->zb->xsize)],
+-                            c->zb->zbuf[i + j * (c->zb->xsize)]);
++    {
++        GLint stride = c->zb->linesize / sizeof(PIXEL);
++        for (j = 0; j < c->zb->ysize; j++)
++            for (i = 0; i < c->zb->xsize; i++) {
++                GLint off = i + j * stride;
++                c->zb->pbuf[off] =
++                    postprocess(i, j, c->zb->pbuf[off],
++                                c->zb->zbuf[i + j * (c->zb->xsize)]);
++            }
++    }
+ }
+diff --git a/src/ztriangle.c b/src/ztriangle.c
+index 33f0384..2b25fc6 100644
+--- a/src/ztriangle.c
++++ b/src/ztriangle.c
+@@ -732,7 +732,7 @@ void ZB_fillTriangleSmoothNOBLEND_DT1_DW1(ZBuffer *zb,
+         z = z1;                                                   \
+         sz = sz1;                                                 \
+         tz = tz1;                                                 \
+-        while (n >= (NB_INTERP - 1)) {                            \
++        while (n >= NB_INTERP) {                            \
+             register GLint dsdx, dtdx;                            \
+             {                                                     \
+                 GLfloat ss, tt;                                   \
+@@ -772,7 +772,7 @@ void ZB_fillTriangleSmoothNOBLEND_DT1_DW1(ZBuffer *zb,
+                 dsdx = (GLint) ((dszdx - ss * fdzdx) * zinv);     \
+                 dtdx = (GLint) ((dtzdx - tt * fdzdx) * zinv);     \
+             }                                                     \
+-            while (n >= 0) {                                      \
++            while (n > 0) {                                      \
+                 PUT_PIXEL_TEXTURED(0, DEPTH_TEST, DEPTH_WRITE_OP) \
+                 pz += 1;                                          \
+                 pp++;                                             \
+diff --git a/src/ztriangle.h b/src/ztriangle.h
+index 271ce8f..10151be 100644
+--- a/src/ztriangle.h
++++ b/src/ztriangle.h
+@@ -279,6 +279,74 @@
+         } /*End of lifetime for ZBufferpoints*/
+         /* we draw all the scan line of the part */
+ 
++        {
++            GLint y_base;
++            if (part == 0)
++                y_base = p0->y;
++            else
++                y_base = p1->y;
++            if (y_base < 0) {
++                GLint skip = -y_base;
++                if (skip >= nb_lines) {
++                    nb_lines = 0;
++                } else {
++                    GLint s;
++                    for (s = 0; s < skip; s++) {
++                        error += derror;
++                        if (error > 0) {
++                            error -= 0x10000;
++                            x1 += dxdy_max;
++#ifdef INTERP_Z
++                            z1 += dzdl_max;
++#endif
++#ifdef INTERP_RGB
++                            r1 += drdl_max;
++                            g1 += dgdl_max;
++                            b1 += dbdl_max;
++#endif
++#ifdef INTERP_ST
++                            s1 += dsdl_max;
++                            t1 += dtdl_max;
++#endif
++#ifdef INTERP_STZ
++                            sz1 += dszdl_max;
++                            tz1 += dtzdl_max;
++#endif
++                        } else {
++                            x1 += dxdy_min;
++#ifdef INTERP_Z
++                            z1 += dzdl_min;
++#endif
++#ifdef INTERP_RGB
++                            r1 += drdl_min;
++                            g1 += dgdl_min;
++                            b1 += dbdl_min;
++#endif
++#ifdef INTERP_ST
++                            s1 += dsdl_min;
++                            t1 += dtdl_min;
++#endif
++#ifdef INTERP_STZ
++                            sz1 += dszdl_min;
++                            tz1 += dtzdl_min;
++#endif
++                        }
++                        x2 += dx2dy2;
++                        pp1 += zb->xsize;
++                        pz1 += zb->xsize;
++                    }
++                    nb_lines -= skip;
++                    y_base = 0;
++                }
++            }
++            if (y_base >= zb->ysize) {
++                nb_lines = 0;
++            } else if (nb_lines > zb->ysize - y_base) {
++                nb_lines = zb->ysize - y_base;
++            }
++            if (nb_lines < 0)
++                nb_lines = 0;
++        }
+         while (nb_lines > 0) {
+             nb_lines--;
+ #ifndef DRAW_LINE
+@@ -301,10 +369,28 @@
+ #endif
+ 
+                 n = (x2 >> 16) - x1;
++                {
++                    GLint x1c;
++                    x1c = x1;
++                    if (x1c < 0) {
++                        n += x1c;
++                        x1c = 0;
++                    }
++                    if (x1c >= zb->xsize) {
++                        x1c = zb->xsize;
++                        n = 0;
++                    }
++                    if (n > zb->xsize - x1c)
++                        n = zb->xsize - x1c;
++                    if (n < 0)
++                        n = 0;
++                    pp = (PIXEL *) pp1 + x1c;
++#ifdef INTERP_Z
++                    pz = pz1 + x1c;
++#endif
++                }
+ 
+-                pp = (PIXEL *) pp1 + x1;
+ #ifdef INTERP_Z
+-                pz = pz1 + x1;
+                 z = z1;
+ #endif
+ #ifdef INTERP_RGB
+@@ -319,7 +405,7 @@
+ #ifdef INTERP_STZ
+ 
+ #endif
+-                while (n >= 3) {
++                while (n >= 4) {
+                     PUT_PIXEL(0); /*the_x++;*/
+                     PUT_PIXEL(1); /*the_x++;*/
+                     PUT_PIXEL(2); /*the_x++;*/
+@@ -331,7 +417,7 @@
+                     pp += 4;
+                     n -= 4;
+                 }
+-                while (n >= 0) {
++                while (n > 0) {
+                     PUT_PIXEL(0); /*the_x++;*/
+ #ifdef INTERP_Z
+ 

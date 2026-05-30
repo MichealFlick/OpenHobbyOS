@@ -12,6 +12,9 @@ LIBSHA1_PC := $(PORTS_SYSROOT)/lib/pkgconfig/libsha1.pc
 PIXMAN_PC := $(PORTS_SYSROOT)/lib/pkgconfig/pixman-1.pc
 FASTFETCH_BIN := $(PORTS_DIR)/fastfetch/install/usr/bin/fastfetch
 XNX_COMPOSITOR := $(PORTS_DIR)/xnx/install/bin/xnx-compositor
+PORTS_LUA_BIN := $(PORTS_SYSROOT)/bin/lua
+PORTS_TINYGL_A := $(PORTS_SYSROOT)/lib/libtinygl.a
+PORTS_GEARS_BIN := $(PORTS_SYSROOT)/bin/gears
 QEMU := qemu-system-i386
 DISK_IMG := disk.img
 QEMU_COMMON_ARGS := -cdrom $(ISO) -no-reboot -no-shutdown
@@ -131,7 +134,7 @@ endef
 $(foreach prog,$(USER_PROGRAMS),$(eval $(call user_program_template,$(prog))))
 USER_BINS := $(addprefix $(BUILD_DIR)/user/,$(addsuffix .elf,$(USER_PROGRAMS)))
 
-.PHONY: all clean iso disk disk-img run run-gui run-debug run-with-disk run-disk ports ports-newlib ports-fastfetch ports-zlib ports-libsha1 ports-pixman ports-xnx ports-lodepng ports-lwip ports-doom
+.PHONY: all clean iso disk disk-img run run-gui run-debug run-with-disk run-disk ports ports-newlib ports-fastfetch ports-zlib ports-libsha1 ports-pixman ports-xnx ports-lodepng ports-lwip ports-doom ports-lua
 
 all: $(ISO)
 
@@ -238,10 +241,10 @@ $(FASTFETCH_BIN): ports/fastfetch/build-fastfetch.sh ports/fastfetch/openhobbyos
 $(XNX_COMPOSITOR): ports/xnx/build-xnx.sh $(PIXMAN_PC) $(PORTS_SYSROOT)/.newlib.stamp | $(PORTS_DIR)
 	ports/xnx/build-xnx.sh $(PORTS_DIR)/xnx $(PORTS_SYSROOT)
 
-$(INITRD): tools/build_initrd.sh tools/mkramdisk.py tools/rootfs_manifest.sh $(USER_BINS) $(FASTFETCH_BIN) $(XNX_COMPOSITOR) | $(BUILD_DIR)
+$(INITRD): tools/build_initrd.sh tools/mkramdisk.py tools/rootfs_manifest.sh $(USER_BINS) $(FASTFETCH_BIN) $(XNX_COMPOSITOR) $(PORTS_LUA_BIN) $(PORTS_GEARS_BIN) | $(BUILD_DIR)
 	tools/build_initrd.sh $@
 
-$(DISK_IMG): $(USER_BINS) $(FASTFETCH_BIN) $(XNX_COMPOSITOR) tools/populate_disk.sh tools/rootfs_manifest.sh
+$(DISK_IMG): $(USER_BINS) $(FASTFETCH_BIN) $(XNX_COMPOSITOR) $(PORTS_LUA_BIN) $(PORTS_GEARS_BIN) tools/populate_disk.sh tools/rootfs_manifest.sh
 	sudo env OPENHOBBYOS_ROOT="$(CURDIR)" "$(CURDIR)/tools/populate_disk.sh" "$(CURDIR)/$(DISK_IMG)"
 
 $(ISO): $(KERNEL) $(INITRD) grub/grub.cfg | $(BUILD_DIR)
@@ -277,7 +280,22 @@ ports-doom: ports/doom/build-doom.sh $(PORTS_SYSROOT)/.newlib.stamp
 ports-ffmpeg: ports/ffmpeg/build-ffmpeg.sh $(PORTS_SYSROOT)/.newlib.stamp
 	ports/ffmpeg/build-ffmpeg.sh $(PORTS_DIR)/ffmpeg $(PORTS_SYSROOT)
 
-ports: $(FASTFETCH_BIN) $(XNX_COMPOSITOR)
+$(PORTS_LUA_BIN): ports/lua/build-lua.sh $(PORTS_SYSROOT)/.newlib.stamp
+	ports/lua/build-lua.sh $(PORTS_DIR)/lua $(PORTS_SYSROOT)
+
+ports-lua: $(PORTS_LUA_BIN)
+
+$(PORTS_TINYGL_A): ports/tinygl/build-tinygl.sh $(PORTS_SYSROOT)/.newlib.stamp
+	ports/tinygl/build-tinygl.sh $(PORTS_DIR)/tinygl $(PORTS_SYSROOT)
+
+ports-tinygl: $(PORTS_TINYGL_A)
+
+$(PORTS_GEARS_BIN): ports/gears/build-gears.sh ports/gears/gears.c $(PORTS_TINYGL_A)
+	ports/gears/build-gears.sh $(PORTS_DIR)/gears $(PORTS_SYSROOT)
+
+ports-gears: $(PORTS_GEARS_BIN)
+
+ports: $(FASTFETCH_BIN) $(XNX_COMPOSITOR) $(PORTS_LUA_BIN) $(PORTS_GEARS_BIN)
 
 run: run-gui
 

@@ -1,0 +1,41 @@
+diff --git a/lapi.c b/lapi.c
+index fb99459..433ac15 100644
+--- a/lapi.c
++++ b/lapi.c
+@@ -796,7 +796,9 @@ LUA_API void lua_createtable (lua_State *L, int narray, int nrec) {
+   sethvalue2s(L, L->top.p, t);
+   api_incr_top(L);
+   if (narray > 0 || nrec > 0)
+-    luaH_resize(L, t, cast_uint(narray), cast_uint(nrec));
++    luaH_resize(L, t,
++                narray > 0 ? cast_uint(narray) : 0u,
++                nrec > 0 ? cast_uint(nrec) : 0u);
+   luaC_checkGC(L);
+   lua_unlock(L);
+ }
+diff --git a/ltable.c b/ltable.c
+index 2f2b5c1..dfe32bd 100644
+--- a/ltable.c
++++ b/ltable.c
+@@ -749,7 +749,7 @@ void luaH_resize (lua_State *L, Table *t, unsigned newasize,
+ 
+ void luaH_resizearray (lua_State *L, Table *t, unsigned int nasize) {
+   unsigned nsize = allocsizenode(t);
+-  luaH_resize(L, t, nasize, nsize);
++  luaH_resize(L, t, nasize > MAXASIZE ? MAXASIZE : nasize, nsize);
+ }
+ 
+ 
+diff --git a/ltm.c b/ltm.c
+index cfe90e3..dd3dfd4 100644
+--- a/ltm.c
++++ b/ltm.c
+@@ -234,7 +234,7 @@ static void createvarargtab (lua_State *L, StkId f, int n) {
+   Table *t = luaH_new(L);
+   sethvalue(L, s2v(L->top.p), t);
+   L->top.p++;
+-  luaH_resize(L, t, cast_uint(n), 1);
++  luaH_resize(L, t, n > 0 ? cast_uint(n) : 0u, 1);
+   setsvalue(L, &key, luaS_new(L, "n"));  /* key is "n" */
+   setivalue(&value, n);  /* value is n */
+   /* No need to anchor the key: Due to the resize, the next operation

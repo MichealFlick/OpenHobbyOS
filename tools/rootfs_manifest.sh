@@ -74,4 +74,13 @@ ohos_rootfs_append_entries() {
     if [[ -f "$ROOT/assets/Doom1.WAD" ]]; then
         _out+=("$ROOT/assets/Doom1.WAD::/doom1.wad")
     fi
+
+    if [[ -f "$ROOT/build/ports/sysroot/bin/gears" ]]; then
+        _out+=("$ROOT/build/ports/sysroot/bin/gears::/bin/gears")
+    fi
+
+    if [[ -f "$ROOT/build/ports/sysroot/bin/lua" ]]; then
+        _out+=("$ROOT/build/ports/sysroot/bin/lua::/bin/lua")
+        _out+=("$ROOT/build/ports/sysroot/bin/lua::/usr/bin/lua")
+    fi
 }
